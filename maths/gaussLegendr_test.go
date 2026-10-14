@@ -139,7 +139,7 @@ func TestTryToGetFirstDerivative(t *testing.T) {
 	}
 	alpha := 1.0 / math.Sqrt(math.Pi)
 	for i := range values {
-		values[i] = alpha * math.Exp(xpoints[i])
+		values[i] = alpha * math.Exp(-xpoints[i])
 	}
 	interval := IntegralInterval{
 		Start:            xMin,

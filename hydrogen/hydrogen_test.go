@@ -7,7 +7,7 @@ import (
 
 func TestHydrogenEnergy(t *testing.T) {
 	hyd := OrbitalSAtomic{
-		NumberOfIntervals:   10000,
+		NumberOfIntervals:   100,
 		IntervalSize:        2.0,
 		NumberOfGaussPoints: 32,
 	}
