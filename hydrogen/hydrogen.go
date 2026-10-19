@@ -16,6 +16,7 @@ type OrbitalS struct {
 type MainQuantumNumber int
 
 type OrbitalSAtomic struct {
+	MainQuantumNumber
 	NumberOfIntervals   int
 	IntervalSize        float64
 	NumberOfGaussPoints int
@@ -30,8 +31,8 @@ func (s OrbitalS) Evaluate(r float64) float64 {
 	return alpha * math.Exp(-r)
 }
 
-func (s OrbitalSAtomic) Evaluate(r float64, mainQuantumNumber MainQuantumNumber) float64 {
-	switch mainQuantumNumber {
+func (s OrbitalSAtomic) Evaluate(r float64) float64 {
+	switch s.MainQuantumNumber {
 	case 1:
 		alpha := 1.0 / math.Sqrt(math.Pi) // Normalization constant for 1s orbital
 		return alpha * math.Exp(-r)
@@ -54,12 +55,12 @@ func (s OrbitalS) RadialDensity(r float64) float64 {
 }
 
 func (s OrbitalSAtomic) RadialDensity(r float64, mainQuantumNumber MainQuantumNumber) float64 {
-	psi := s.Evaluate(r, mainQuantumNumber)
+	psi := s.Evaluate(r)
 	return 4.0 * math.Pi * r * r * psi * psi
 }
 
-func (s *OrbitalSAtomic) GenerateGrid(mainQuantumNumber MainQuantumNumber) error {
-	if mainQuantumNumber < 1 || mainQuantumNumber > 2 {
+func (s *OrbitalSAtomic) GenerateGrid() error {
+	if s.MainQuantumNumber < 1 || s.MainQuantumNumber > 2 {
 		return errors.New("Invalid main quantum number")
 	}
 	s.Grid = make([]maths.IntegralInterval, s.NumberOfIntervals)
@@ -71,7 +72,7 @@ func (s *OrbitalSAtomic) GenerateGrid(mainQuantumNumber MainQuantumNumber) error
 		for j := range points {
 			points[j] = (end-start)/2*points[j] + (end+start)/2
 			weights[j] = (end - start) / 2 * weights[j]
-			values[j] = s.Evaluate(points[j], mainQuantumNumber)
+			values[j] = s.Evaluate(points[j])
 		}
 		s.Grid[i] = maths.IntegralInterval{
 			Start:   start,

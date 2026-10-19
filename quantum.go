@@ -33,12 +33,13 @@ func calculateHydrogenSOrbitalEnergy(mainQuantumNumber hydrogen.MainQuantumNumbe
 	delta := math.Abs(exactValue - baseEnergy)
 	for i := gLpointsMin; i <= gLpointsMax; i++ {
 		hyd := hydrogen.OrbitalSAtomic{
+			MainQuantumNumber:   mainQuantumNumber,
 			NumberOfIntervals:   numberOfIntervals,
 			IntervalSize:        intervalSize,
 			NumberOfGaussPoints: i,
 		}
 		//fmt.Printf("Calculation parameters: interval size %f, number of intervals %d, number of Gauss points %d \n", hyd.IntervalSize, hyd.NumberOfIntervals, hyd.NumberOfGaussPoints)
-		hyd.GenerateGrid(mainQuantumNumber)
+		hyd.GenerateGrid()
 		hyd.CalculateEnergy()
 		//fmt.Printf("Calculated hydrogen ground state energy in atomic units is %.17g \n", hyd.Energy)
 		newDelta := math.Abs(exactValue - hyd.Energy)
