@@ -1,6 +1,7 @@
 package hydrogen
 
 import (
+	"errors"
 	"math"
 	"quantum-go/maths"
 )
@@ -12,7 +13,10 @@ type RadialFunction interface {
 type OrbitalS struct {
 }
 
+type MainQuantumNumber int
+
 type OrbitalSAtomic struct {
+	MainQuantumNumber
 	NumberOfIntervals   int
 	IntervalSize        float64
 	NumberOfGaussPoints int
@@ -27,31 +31,44 @@ func (s OrbitalS) Evaluate(r float64) float64 {
 	return alpha * math.Exp(-r)
 }
 
-func (s OrbitalSAtomic) Evaluate(r float64) float64 { // Convert r to Bohr units
-	alpha := 1.0 / math.Sqrt(math.Pi) // Normalization constant for 1s orbital
-	return alpha * math.Exp(-r)
+func (s OrbitalSAtomic) Evaluate(r float64) float64 {
+	switch s.MainQuantumNumber {
+	case 1:
+		alpha := 1.0 / math.Sqrt(math.Pi) // Normalization constant for 1s orbital
+		return alpha * math.Exp(-r)
+	case 2:
+		alpha := 1.0 / (4 * math.Sqrt(2*math.Pi)) // Normalization constant for 1s orbital
+		return alpha * (2 - r) * math.Exp(-r/2)
+	}
+	return 0
 }
 
-// RadialDensity oblicza gęstość prawdopodobieństwa znalezienia elektronu w sferze o promieniu r
+func (s OrbitalSAtomic) Evaluate2s(r float64) float64 { // Convert r to Bohr units
+	alpha := 1.0 / (4 * math.Sqrt(2*math.Pi)) // Normalization constant for 1s orbital
+	return alpha * (2 - r) * math.Exp(-r/2)
+}
+
+// RadialDensity calculates probability density in a sphere of r radius
 func (s OrbitalS) RadialDensity(r float64) float64 {
 	psi := s.Evaluate(r)
 	return 4.0 * math.Pi * r * r * psi * psi
 }
 
-func (s OrbitalSAtomic) RadialDensity(r float64) float64 {
+func (s OrbitalSAtomic) RadialDensity(r float64, mainQuantumNumber MainQuantumNumber) float64 {
 	psi := s.Evaluate(r)
 	return 4.0 * math.Pi * r * r * psi * psi
 }
 
-func (s *OrbitalSAtomic) GenerateGrid() {
+func (s *OrbitalSAtomic) GenerateGrid() error {
+	if s.MainQuantumNumber < 1 || s.MainQuantumNumber > 2 {
+		return errors.New("Invalid main quantum number")
+	}
 	s.Grid = make([]maths.IntegralInterval, s.NumberOfIntervals)
 	for i := range s.NumberOfIntervals {
 		start := float64(i) * s.IntervalSize
 		end := start + s.IntervalSize
 		points, weights, _ := maths.GaussLegendrePointsWeights(s.NumberOfGaussPoints)
 		values := make([]float64, s.NumberOfGaussPoints)
-		//values[0] = s.Evaluate(start)
-		//values[s.numberOfGaussPoints+1] = s.Evaluate(end)
 		for j := range points {
 			points[j] = (end-start)/2*points[j] + (end+start)/2
 			weights[j] = (end - start) / 2 * weights[j]
@@ -65,6 +82,7 @@ func (s *OrbitalSAtomic) GenerateGrid() {
 			Values:  values,
 		}
 	}
+	return nil
 }
 
 func Hydrogen1SHamiltonian(interval maths.IntegralInterval, i int) float64 {
