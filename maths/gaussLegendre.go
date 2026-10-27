@@ -5,14 +5,14 @@ import (
 	"math"
 )
 
-var points []float64
-var weights []float64
+var points map[int][]float64
+var weights map[int][]float64
 
 func makeGLCopy(n int) ([]float64, []float64, error) {
 	pCopy := make([]float64, n)
 	wCopy := make([]float64, n)
-	copy(pCopy, points)
-	copy(wCopy, weights)
+	copy(pCopy, points[n])
+	copy(wCopy, weights[n])
 	return pCopy, wCopy, nil
 }
 
@@ -21,11 +21,19 @@ func GaussLegendrePointsWeights(n int) ([]float64, []float64, error) {
 		return nil, nil, fmt.Errorf("n must be a positive integer")
 	}
 
-	if points != nil && weights != nil && len(points) == n && len(weights) == n {
+	if points == nil {
+		points = make(map[int][]float64)
+	}
+	if weights == nil {
+		weights = make(map[int][]float64)
+	}
+
+	if points[n] != nil && weights[n] != nil {
 		return makeGLCopy(n)
 	}
-	points = make([]float64, n)
-	weights = make([]float64, n)
+
+	points[n] = make([]float64, n)
+	weights[n] = make([]float64, n)
 
 	numberOfDistinctPoints := (n + 1) / 2
 	eps := 1e-15
@@ -42,11 +50,11 @@ func GaussLegendrePointsWeights(n int) ([]float64, []float64, error) {
 				break
 			}
 		}
-		points[i] = -approx
-		points[n-1-i] = approx
+		points[n][i] = -approx
+		points[n][n-1-i] = approx
 		weight := 2.0 / ((1.0 - approx*approx) * pp[n] * pp[n])
-		weights[i] = weight
-		weights[n-1-i] = weight
+		weights[n][i] = weight
+		weights[n][n-1-i] = weight
 	}
 	return makeGLCopy(n)
 }
@@ -71,7 +79,7 @@ func LegendrePolynomialValuesWithDerivatives(n int, x float64) (lp, dlp, ddlp []
 	return
 }
 
-func (interval *IntegralInterval) InterpolatingLegendrePolynomialCoefficients() error {
+func (interval *InterpolationInterval) CalculateInterpolatingPolynomialCoefficientsAndFunctionDerivatives() error {
 	xpoints := interval.Points
 	values := interval.Values
 	xMin := interval.Start
@@ -84,10 +92,10 @@ func (interval *IntegralInterval) InterpolatingLegendrePolynomialCoefficients() 
 		return error
 	}
 	normalizedX := make([]float64, len(xpoints))
-	for i, x := range xpoints {
+	for i, x := range xpoints { //Scaling variable borders  to fit Legendre polynomial orthogonality interval (-1,1)
 		normalizedX[i] = (2.0*x - (xMin + xMax)) / (xMax - xMin)
 	}
-	valuesMatrix := make([][]float64, len(normalizedX))
+	valuesMatrix := make([][]float64, len(normalizedX)) //Matrixes contain values of each Legendre polynomial for each point in the interpolation interval
 	dMatrix := make([][]float64, len(normalizedX))
 	ddMatrix := make([][]float64, len(normalizedX))
 	for j := range normalizedX {
@@ -105,11 +113,11 @@ func (interval *IntegralInterval) InterpolatingLegendrePolynomialCoefficients() 
 	for i := range normalizedX {
 		firstDv := 0.0
 		secondDv := 0.0
-		for j, co := range interval.Coefficients {
+		for j, co := range interval.Coefficients { //Derivative values are sum of derivatives of each interpolating polynomials
 			firstDv += co * dMatrix[i][j]
 			secondDv += co * ddMatrix[i][j]
 		}
-		firstDv *= scale
+		firstDv *= scale //Scaling back to original variable range
 		secondDv *= scale * scale
 		interval.FirstDerivative[i] = firstDv
 		interval.SecondDerivative[i] = secondDv

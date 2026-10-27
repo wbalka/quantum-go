@@ -113,14 +113,14 @@ func TestInterpolatingLegendrePolynomialCoefficients(t *testing.T) {
 	for i := range values {
 		values[i] = alpha * math.Exp(xpoints[i])
 	}
-	interval := IntegralInterval{
+	interval := InterpolationInterval{
 		Start:   xMin,
 		End:     xMax,
 		Points:  xpoints,
 		Weights: weights,
 		Values:  values,
 	}
-	interval.InterpolatingLegendrePolynomialCoefficients()
+	interval.CalculateInterpolatingPolynomialCoefficientsAndFunctionDerivatives()
 	returnedValue, _, _ := CalculateValueUsingCoefficients(interval.Coefficients, xpoints[6], xMin, xMax)
 	fmt.Printf("Received value: %f, expected %f", returnedValue, values[6])
 	delta := 0.00000000001
@@ -141,7 +141,7 @@ func TestTryToGetFirstDerivative(t *testing.T) {
 	for i := range values {
 		values[i] = alpha * math.Exp(-xpoints[i])
 	}
-	interval := IntegralInterval{
+	interval := InterpolationInterval{
 		Start:            xMin,
 		End:              xMax,
 		Points:           xpoints,
@@ -151,7 +151,7 @@ func TestTryToGetFirstDerivative(t *testing.T) {
 		SecondDerivative: make([]float64, gLPoints),
 		Coefficients:     make([]float64, gLPoints),
 	}
-	interval.InterpolatingLegendrePolynomialCoefficients()
+	interval.CalculateInterpolatingPolynomialCoefficientsAndFunctionDerivatives()
 	//value, firstDerivative, secondDerivative := CalculateValueUsingCoefficients(coeffs, x, xMin, xMax)
 	//derivativeValue := TryToGetFirstDerivative(coeffs, x, xMin, xMax)
 	fmt.Printf("The real value     is: %.17g \n", interval.Values[32])
