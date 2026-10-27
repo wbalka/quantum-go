@@ -27,10 +27,10 @@ type OrbitalSAtomic struct {
 
 type OrbitalPAtomic struct {
 	MainQuantumNumber
-	numberOfAreas           int
-	radialNumberOfGLPoints  int
-	angularNumberOfGLPoints int
-	radialIntervalSize      float64
+	NumberOfAreas           int
+	RadialNumberOfGLPoints  int
+	AngularNumberOfGLPoints int
+	RadialIntervalSize      float64
 	Grid                    []maths.IntegralArea
 	Energy                  float64
 	Kinetic                 float64
@@ -107,17 +107,17 @@ func (s *OrbitalPAtomic) GenerateGrid() error {
 	if s.MainQuantumNumber < 2 || s.MainQuantumNumber > 2 {
 		return errors.New("Invalid main quantum number")
 	}
-	s.Grid = make([]maths.IntegralArea, s.numberOfAreas)
-	for i := range s.numberOfAreas {
-		start := float64(i) * s.radialIntervalSize
-		end := start + s.radialIntervalSize
-		radialPoints, radialWeights, _ := maths.GaussLegendrePointsWeights(s.radialNumberOfGLPoints)
-		angularPoints, angularWeights, _ := maths.GaussLegendrePointsWeights(s.angularNumberOfGLPoints)
-		values := make([][]float64, s.radialNumberOfGLPoints)
+	s.Grid = make([]maths.IntegralArea, s.NumberOfAreas)
+	for i := range s.NumberOfAreas {
+		start := float64(i) * s.RadialIntervalSize
+		end := start + s.RadialIntervalSize
+		radialPoints, radialWeights, _ := maths.GaussLegendrePointsWeights(s.RadialNumberOfGLPoints)
+		angularPoints, angularWeights, _ := maths.GaussLegendrePointsWeights(s.AngularNumberOfGLPoints)
+		values := make([][]float64, s.RadialNumberOfGLPoints)
 		for j := range radialPoints {
 			radialPoints[j] = (end-start)/2*radialPoints[j] + (end+start)/2
 			radialWeights[j] = (end - start) / 2 * radialWeights[j]
-			values[j] = make([]float64, s.angularNumberOfGLPoints)
+			values[j] = make([]float64, s.AngularNumberOfGLPoints)
 			for k := range angularPoints {
 				values[j][k] = s.Evaluate(radialPoints[j], angularPoints[k])
 			}
@@ -127,7 +127,7 @@ func (s *OrbitalPAtomic) GenerateGrid() error {
 			EndRadial:           end,
 			StartAngular:        -1,
 			EndAngular:          1,
-			RadialIntervalSize:  s.radialIntervalSize,
+			RadialIntervalSize:  s.RadialIntervalSize,
 			AngularIntervalSize: 2.0,
 			RadialPoints:        radialPoints,
 			RadialWeights:       radialWeights,

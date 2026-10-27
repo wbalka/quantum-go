@@ -34,13 +34,13 @@ func TestHydrogen2sEnergy(t *testing.T) {
 func TestHydrogen2pEnergy(t *testing.T) {
 	hyd := OrbitalPAtomic{
 		MainQuantumNumber:       2,
-		numberOfAreas:           100,
-		radialNumberOfGLPoints:  32,
-		angularNumberOfGLPoints: 32,
-		radialIntervalSize:      2.0,
+		NumberOfAreas:           100,
+		RadialNumberOfGLPoints:  32,
+		AngularNumberOfGLPoints: 32,
+		RadialIntervalSize:      2.0,
 	}
-	fmt.Printf("Calculation parameters: interval size %f, number of intervals %d, number of Gauss points %d \n", hyd.radialIntervalSize, hyd.numberOfAreas, hyd.radialNumberOfGLPoints)
+	fmt.Printf("Calculation parameters: interval size %f, number of intervals %d, number of Gauss points %d \n", hyd.RadialIntervalSize, hyd.NumberOfAreas, hyd.RadialNumberOfGLPoints)
 	hyd.GenerateGrid()
 	hyd.CalculateEnergy()
-	fmt.Printf("Eneergy is %.17g", hyd.Energy)
+	fmt.Printf("Eneergy is %.17g\n", hyd.Energy)
 }
