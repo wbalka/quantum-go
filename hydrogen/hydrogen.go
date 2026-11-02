@@ -2,12 +2,13 @@ package hydrogen
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"quantum-go/maths"
 )
 
 type MainQuantumNumber int
+
+type AzimuthalQuantumNumber int
 
 type RadialFunction interface {
 	Evaluate(r float64) float64
@@ -18,6 +19,7 @@ type OrbitalS struct {
 
 type OrbitalSAtomic struct {
 	MainQuantumNumber
+	maths.WaveFunction
 	NumberOfIntervals   int
 	IntervalSize        float64
 	NumberOfGaussPoints int
@@ -27,6 +29,8 @@ type OrbitalSAtomic struct {
 
 type OrbitalPAtomic struct {
 	MainQuantumNumber
+	AzimuthalQuantumNumber
+	maths.WaveFunction
 	NumberOfAreas           int
 	RadialNumberOfGLPoints  int
 	AngularNumberOfGLPoints int
@@ -45,25 +49,11 @@ func (s OrbitalS) Evaluate(r float64) float64 {
 }
 
 func (s OrbitalSAtomic) Evaluate(r float64) float64 {
-	switch s.MainQuantumNumber {
-	case 1:
-		alpha := 1.0 / math.Sqrt(math.Pi) // Normalization constant for 1s orbital
-		return alpha * math.Exp(-r)
-	case 2:
-		alpha := 1.0 / (4 * math.Sqrt(2*math.Pi)) // Normalization constant for 1s orbital
-		return alpha * (2 - r) * math.Exp(-r/2)
-	}
-	return 0
+	return s.WaveFunction(r, 0)
 }
 
 func (s OrbitalPAtomic) Evaluate(r float64, u float64) float64 {
-	switch s.MainQuantumNumber {
-	case 2:
-		alpha := 1.0 / (4 * math.Sqrt(2*math.Pi))
-		return alpha * r * math.Exp(-r/2) * u
-	default:
-		return 0
-	}
+	return s.WaveFunction(r, u)
 }
 
 // RadialDensity calculates probability density in a sphere of r radius
@@ -78,9 +68,10 @@ func (s OrbitalSAtomic) RadialDensity(r float64, mainQuantumNumber MainQuantumNu
 }
 
 func (s *OrbitalSAtomic) GenerateGrid() error {
-	if s.MainQuantumNumber < 1 || s.MainQuantumNumber > 2 {
+	if s.MainQuantumNumber < 1 || s.MainQuantumNumber > 5 {
 		return errors.New("Invalid main quantum number")
 	}
+	s.WaveFunction, _ = maths.GetWaveFunction(int(s.MainQuantumNumber), 0, 0, 1)
 	s.Grid = make([]maths.RadialInterval, s.NumberOfIntervals)
 	for i := range s.NumberOfIntervals {
 		start := float64(i) * s.IntervalSize
@@ -104,9 +95,10 @@ func (s *OrbitalSAtomic) GenerateGrid() error {
 }
 
 func (s *OrbitalPAtomic) GenerateGrid() error {
-	if s.MainQuantumNumber < 2 || s.MainQuantumNumber > 2 {
+	if s.MainQuantumNumber < 2 || s.MainQuantumNumber > 5 {
 		return errors.New("Invalid main quantum number")
 	}
+	s.WaveFunction, _ = maths.GetWaveFunction(int(s.MainQuantumNumber), int(s.AzimuthalQuantumNumber), 0, 1)
 	s.Grid = make([]maths.IntegralArea, s.NumberOfAreas)
 	for i := range s.NumberOfAreas {
 		start := float64(i) * s.RadialIntervalSize
@@ -178,5 +170,5 @@ func (s *OrbitalPAtomic) CalculateEnergy() {
 	s.Kinetic *= 2 * math.Pi
 	s.Potential *= 2 * math.Pi
 	s.Energy = s.Kinetic + s.Potential
-	fmt.Printf("Kinetic %0.17g potential %0.17g \n", s.Kinetic, s.Potential)
+	//fmt.Printf("Kinetic %0.17g potential %0.17g \n", s.Kinetic, s.Potential)
 }

@@ -10,11 +10,11 @@ func main() {
 	calculateHydrogenSOrbitalEnergy(1, 2.0, 100, 14, 80)
 	calculateHydrogenSOrbitalEnergy(2, 2.0, 100, 14, 80)
 	calculateHydrogenSOrbitalEnergy(2, 1.0, 200, 14, 80)
-	calculateHydrogenPOrbitalEnergy(2, 2.0, 100, 24, 40, 1, 24, 40, 1)
-	/*
-		 	calculateHydrogenSOrbitalEnergy(2, 2.0, 1000, 8, 100)
-			calculateHydrogenSOrbitalEnergy(2, 1.0, 2000, 8, 100)
-	*/
+	calculateHydrogenPDOrbitalEnergy(2, 1, 2.0, 100, 24, 40, 1, 24, 40, 1)
+	calculateHydrogenPDOrbitalEnergy(3, 1, 2.0, 100, 24, 40, 1, 24, 40, 1)
+	calculateHydrogenPDOrbitalEnergy(3, 2, 2.0, 100, 24, 40, 1, 24, 40, 1)
+	calculateHydrogenPDOrbitalEnergy(4, 1, 2.0, 100, 24, 40, 1, 24, 40, 1)
+	calculateHydrogenPDOrbitalEnergy(4, 2, 2.0, 100, 24, 40, 1, 24, 40, 1)
 }
 
 func calculateHydrogenSOrbitalEnergy(mainQuantumNumber hydrogen.MainQuantumNumber, intervalSize float64, numberOfIntervals int, gLpointsMin int, gLpointsMax int) {
@@ -58,8 +58,9 @@ func calculateHydrogenSOrbitalEnergy(mainQuantumNumber hydrogen.MainQuantumNumbe
 	fmt.Printf("Average energy: %.17g \n", average)
 }
 
-func calculateHydrogenPOrbitalEnergy(
+func calculateHydrogenPDOrbitalEnergy(
 	mainQuantumNumber hydrogen.MainQuantumNumber,
+	azimuthalQuantumNumber hydrogen.AzimuthalQuantumNumber,
 	areaRadialDimension float64,
 	numberOfAreas int,
 	radialGLPointsMin int,
@@ -72,9 +73,14 @@ func calculateHydrogenPOrbitalEnergy(
 	switch mainQuantumNumber {
 	case 2:
 		exactValue = -0.125
+	case 3:
+		exactValue = -1.0 / 18.0
+	case 4:
+		exactValue = -1.0 / 32.0
 	default:
 		panic(mainQuantumNumber)
 	}
+
 	average := 0.0
 	count := 0
 	optimalRadialGLPointsNumber := 0
@@ -85,6 +91,7 @@ func calculateHydrogenPOrbitalEnergy(
 		for an := angGLPointsMin; an <= angGLPointsMax; an += angGLPointsStep {
 			hyd := hydrogen.OrbitalPAtomic{
 				MainQuantumNumber:       mainQuantumNumber,
+				AzimuthalQuantumNumber:  azimuthalQuantumNumber,
 				NumberOfAreas:           numberOfAreas,
 				RadialNumberOfGLPoints:  rd,
 				AngularNumberOfGLPoints: an,
@@ -107,8 +114,8 @@ func calculateHydrogenPOrbitalEnergy(
 		}
 	}
 	average = average / float64(count)
-	fmt.Printf("Calculation parameters \n Orbital %dp\n Area radial size: %f, number of areas: %d, radial G-L points range: %d-%d\n angular G-L points range %d-%d\n",
-		mainQuantumNumber, areaRadialDimension, numberOfAreas, radialGLPointsMin, radialGLPointsMax, angGLPointsMin, angGLPointsMax)
+	fmt.Printf("Calculation parameters \n Orbital n=%d l=%d\n Area radial size: %f, number of areas: %d, radial G-L points range: %d-%d\n angular G-L points range %d-%d\n",
+		mainQuantumNumber, azimuthalQuantumNumber, areaRadialDimension, numberOfAreas, radialGLPointsMin, radialGLPointsMax, angGLPointsMin, angGLPointsMax)
 	fmt.Printf("Most accurate energy:  %.17g - calculated with %d radial and %d angular G-L points\n", baseEnergy, optimalRadialGLPointsNumber, optimalAngularGLPointsNumber)
 	fmt.Printf("Average energy: %.17g \n", average)
 }
