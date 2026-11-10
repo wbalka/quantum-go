@@ -5,8 +5,18 @@ import "math"
 type WaveFunction func(r float64, u float64) float64
 
 func GetWaveFunction(n int, l int, m int, Z int) (WaveFunction, error) {
+	/*
+		Function that returns the wave function for hydrogen-like atom orbital.
+		The wave function is produced from components: normalization constant, laguerre polynomial, spherical harmonic
+		ro is an auxilary variable
+		Parameters:
+		n - main quantum number
+		l - azimuthal quatnum number
+		m - magnetic quantum number
+		Z - number of protons in nucleus (total charge of nucleus)
+	*/
 	lagPolly, _ := GetLaguerrePolynomial(n+l, 2*l+1)
-	norm := NormalizationConstant(n, l, Z)
+	norm := GetNormalizationConstant(n, l, Z)
 	sphericalHarm, _ := GetSphericalHarm(l, m)
 	ro := 2.0 * float64(Z) / float64(n)
 	return func(r float64, u float64) float64 {

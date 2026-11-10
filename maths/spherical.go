@@ -7,8 +7,10 @@ import (
 
 type SphericalHarm func(float64) float64
 
-//We use substitution u=cosθ
-
+/*
+Spherical harmocis are the angular solutions when solving Laplace's equation in spherical coordinates
+Substitution used: u=cosθ
+*/
 func GetSphericalHarm(l int, m int) (SphericalHarm, error) {
 	switch l {
 	case 0:

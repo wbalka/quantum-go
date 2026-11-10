@@ -6,7 +6,7 @@ import (
 )
 
 func TestHydrogen1sEnergy(t *testing.T) {
-	hyd := OrbitalSAtomic{
+	hyd := SphericalOrbitalAtomic{
 		MainQuantumNumber:   1,
 		NumberOfIntervals:   100,
 		IntervalSize:        2.0,
@@ -19,7 +19,7 @@ func TestHydrogen1sEnergy(t *testing.T) {
 }
 
 func TestHydrogen2sEnergy(t *testing.T) {
-	hyd := OrbitalSAtomic{
+	hyd := SphericalOrbitalAtomic{
 		MainQuantumNumber:   2,
 		NumberOfIntervals:   10000,
 		IntervalSize:        2.0,
@@ -32,7 +32,7 @@ func TestHydrogen2sEnergy(t *testing.T) {
 }
 
 func TestHydrogen3sEnergy(t *testing.T) {
-	hyd := OrbitalSAtomic{
+	hyd := SphericalOrbitalAtomic{
 		MainQuantumNumber:   3,
 		NumberOfIntervals:   10000,
 		IntervalSize:        2.0,
@@ -45,7 +45,7 @@ func TestHydrogen3sEnergy(t *testing.T) {
 }
 
 func TestHydrogen2pEnergy(t *testing.T) {
-	hyd := OrbitalPAtomic{
+	hyd := AxialOrbitalAtomic{
 		MainQuantumNumber:       2,
 		AzimuthalQuantumNumber:  1,
 		NumberOfAreas:           100,
@@ -60,7 +60,7 @@ func TestHydrogen2pEnergy(t *testing.T) {
 }
 
 func TestHydrogen3pEnergy(t *testing.T) {
-	hyd := OrbitalPAtomic{
+	hyd := AxialOrbitalAtomic{
 		MainQuantumNumber:       3,
 		AzimuthalQuantumNumber:  1,
 		NumberOfAreas:           100,
@@ -75,7 +75,7 @@ func TestHydrogen3pEnergy(t *testing.T) {
 }
 
 func TestHydrogen3dEnergy(t *testing.T) {
-	hyd := OrbitalPAtomic{
+	hyd := AxialOrbitalAtomic{
 		MainQuantumNumber:       3,
 		AzimuthalQuantumNumber:  2,
 		NumberOfAreas:           100,
