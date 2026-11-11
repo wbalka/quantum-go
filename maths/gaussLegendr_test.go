@@ -3,6 +3,7 @@ package maths
 import (
 	"fmt"
 	"math"
+	"slices"
 	"testing"
 )
 
@@ -16,6 +17,9 @@ func TestGaussLegendrePointsWeights(t *testing.T) {
 	fmt.Printf("Weights: %v\n", weights)
 	fmt.Printf("Points length: %d\n", len(points))
 	fmt.Printf("Weights length: %d\n", len(weights))
+	if len(points) != 3 || len(weights) != 3 {
+		t.Errorf("Expected length 3, received %d", len(points))
+	}
 }
 
 func TestLegendrePolynomialValue(t *testing.T) {
@@ -154,11 +158,14 @@ func TestTryToGetFirstDerivative(t *testing.T) {
 	interval.CalculateInterpolatingPolynomialCoefficientsAndFunctionDerivatives()
 	//value, firstDerivative, secondDerivative := CalculateValueUsingCoefficients(coeffs, x, xMin, xMax)
 	//derivativeValue := TryToGetFirstDerivative(coeffs, x, xMin, xMax)
-	fmt.Printf("The real value     is: %.17g \n", interval.Values[32])
+	fmt.Printf("The real value     is: %.17g \n", interval.Values[16])
 	//fmt.Printf("The interpolated v was %.17g \n", value)
-	fmt.Printf("The 1st derivative was %.17g \n", interval.FirstDerivative[32])
+	fmt.Printf("The 1st derivative was %.17g \n", interval.FirstDerivative[16])
 	//fmt.Printf("The old 1st deriv  was %.17g \n", derivativeValue)
-	fmt.Printf("The 2nd derivative was %.17g \n", interval.SecondDerivative[32])
+	fmt.Printf("The 2nd derivative was %.17g \n", interval.SecondDerivative[16])
+	if interval.FirstDerivative[16]+interval.SecondDerivative[16] > 0.00000000000001 {
+		t.Errorf("Expected same value for derivatives, but with different sign, got d1 %0.17g and d2 %0.17g", interval.FirstDerivative[16], interval.SecondDerivative[16])
+	}
 }
 
 func TestLPPvalue(t *testing.T) {
@@ -168,5 +175,7 @@ func TestLPPvalue(t *testing.T) {
 	fmt.Printf("The value was %.17g \n", value)
 	fmt.Printf("The 1st derivative was  %.17g \n", firstDerivative)
 	fmt.Printf("The 2nd derivative was  %.17g \n", secondDerivative)
-
+	if !slices.Equal(secondDerivative, []float64{0, 0, 3, -7.5}) {
+		t.Errorf("Received second derivative calculation does not match expected values")
+	}
 }
