@@ -111,16 +111,17 @@ func (s *AxialOrbitalAtomic) GenerateGrid() error {
 	return nil
 }
 
+/*
+Hamiltonian of hydrogen atom in atomic units (a.u.) for spherical symmetry.
+
+Operator:
+H^ = -1/2 * [ d2/dr2 + 2/r * d/dr ] - 1/r
+
+Where:
+
+	r - radial distance from nucleus
+*/
 func HydrogenSHamiltonian(interval maths.RadialInterval, i int) float64 {
-	/*
-	   Hamiltonian of hydrogen atom in atomic units (a.u.) for spherical symmetry.
-
-	   Operator:
-	   H^ = -1/2 * [ d2/dr2 + 2/r * d/dr ] - 1/r
-
-	   Where:
-	     r - radial distance from nucleus
-	*/
 	return -0.5*(interval.SecondDerivative[i]+2*interval.FirstDerivative[i]/interval.Points[i]) - interval.Values[i]/interval.Points[i]
 }
 
@@ -135,18 +136,19 @@ func (s *SphericalOrbitalAtomic) CalculateEnergy() {
 	s.Energy *= 4 * math.Pi
 }
 
+/*
+Hamiltonian of hydrogen atom in atomic units (a.u.) for axial symmetry.
+Substituion used: u = cos(theta), assuming d/d(phi) = 0.
+
+Operator:
+H^ = -1/2 * [ 1/r^2 * d/dr(r^2 * d/dr) + 1/r^2 * d/du((1 - u^2) * d/du) ] - 1/r
+
+Where:
+
+	r - radial distance from nucleus
+	u - cosine of polar angle (cos(theta)), lies within range [-1, 1]
+*/
 func HydrogenPHamiltonian(interval maths.IntegralArea, r int, u int) (float64, float64) {
-	/*
-	   Hamiltonian of hydrogen atom in atomic units (a.u.) for axial symmetry.
-	   Substituion used: u = cos(theta), assuming d/d(phi) = 0.
-
-	   Operator:
-	   H^ = -1/2 * [ 1/r^2 * d/dr(r^2 * d/dr) + 1/r^2 * d/du((1 - u^2) * d/du) ] - 1/r
-
-	   Where:
-	     r - radial distance from nucleus
-	     u - cosine of polar angle (cos(theta)), lies within range [-1, 1]
-	*/
 	kineticRadial := interval.RadialSecondDerivative[r][u] + 2*interval.RadialFirstDerivative[r][u]/interval.RadialPoints[r]
 	kineticAngular := (-2*interval.AngularPoints[u]*interval.AngularFirstDerivative[r][u] + (1-interval.AngularPoints[u]*interval.AngularPoints[u])*interval.AngularSecondDerivative[r][u]) / (interval.RadialPoints[r] * interval.RadialPoints[r])
 	potential := interval.Values[r][u] / interval.RadialPoints[r]

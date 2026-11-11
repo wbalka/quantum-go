@@ -12,11 +12,11 @@ func logFactorial(n int) float64 {
 	return lnGamma
 }
 
+/*
+Normalization constant for the hydrogenic radial wave function R_nl(r).
+Using natural logarithms to avoid overflow on factorials
+*/
 func GetNormalizationConstant(n, l, Z int) float64 {
-	/*
-		Normalization constant for the hydrogenic radial wave function R_nl(r).
-		Using natural logarithms to avoid overflow on factorials
-	*/
 	ro := 2.0 * float64(Z) / float64(n)
 	lnPart1 := 3.0 * math.Log(ro)
 	lnNumerator := logFactorial(n - l - 1)
