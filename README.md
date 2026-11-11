@@ -4,7 +4,7 @@ This project focuses on numerical simulations of quantum-mechanical problems.
 I'm not using any AI code generation tools, because it would not allow me to learn and would be much less fun.
 I use AI however to refresh my memory when I encounter issues of mathematical nature. 
 
-Current model allows calculations for wave functions of spherical and axial symmetries:
+Current model allows calculations for wave functions of spherical and axial symmetries:\
 Most accurate value of ground state energy for now is:\
 -0.49999999999995487 a.u.\
 compared to -0.5 exact value\
