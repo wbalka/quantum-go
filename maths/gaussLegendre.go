@@ -16,6 +16,10 @@ func makeGLCopy(n int) ([]float64, []float64, error) {
 	return pCopy, wCopy, nil
 }
 
+/*
+Calculates points and weights for Gauss-Legendre quadrature
+Stores results in points and weights maps (above)
+*/
 func GaussLegendrePointsWeights(n int) ([]float64, []float64, error) {
 	if n <= 0 {
 		return nil, nil, fmt.Errorf("n must be a positive integer")
@@ -92,10 +96,12 @@ func (interval *InterpolationInterval) CalculateInterpolatingPolynomialCoefficie
 		return error
 	}
 	normalizedX := make([]float64, len(xpoints))
-	for i, x := range xpoints { //Scaling variable borders  to fit Legendre polynomial orthogonality interval (-1,1)
+	//Scaling variable borders  to fit Legendre polynomial orthogonality interval (-1,1)
+	for i, x := range xpoints {
 		normalizedX[i] = (2.0*x - (xMin + xMax)) / (xMax - xMin)
 	}
-	valuesMatrix := make([][]float64, len(normalizedX)) //Matrixes contain values of each Legendre polynomial for each point in the interpolation interval
+	//Matrixes contain values of each Legendre polynomial for each point in the interpolation interval
+	valuesMatrix := make([][]float64, len(normalizedX))
 	dMatrix := make([][]float64, len(normalizedX))
 	ddMatrix := make([][]float64, len(normalizedX))
 	for j := range normalizedX {
@@ -113,11 +119,13 @@ func (interval *InterpolationInterval) CalculateInterpolatingPolynomialCoefficie
 	for i := range normalizedX {
 		firstDv := 0.0
 		secondDv := 0.0
-		for j, co := range interval.Coefficients { //Derivative values are sum of derivatives of each interpolating polynomials
+		//Derivative values are sum of derivatives of each interpolating polynomials
+		for j, co := range interval.Coefficients {
 			firstDv += co * dMatrix[i][j]
 			secondDv += co * ddMatrix[i][j]
 		}
-		firstDv *= scale //Scaling back to original variable range
+		//Scaling back to original variable range
+		firstDv *= scale
 		secondDv *= scale * scale
 		interval.FirstDerivative[i] = firstDv
 		interval.SecondDerivative[i] = secondDv

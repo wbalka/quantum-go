@@ -10,14 +10,7 @@ type MainQuantumNumber int
 
 type AzimuthalQuantumNumber int
 
-type RadialFunction interface {
-	Evaluate(r float64) float64
-}
-
-type OrbitalS struct {
-}
-
-type OrbitalSAtomic struct {
+type SphericalOrbitalAtomic struct {
 	MainQuantumNumber
 	maths.WaveFunction
 	NumberOfIntervals   int
@@ -27,7 +20,7 @@ type OrbitalSAtomic struct {
 	Energy              float64
 }
 
-type OrbitalPAtomic struct {
+type AxialOrbitalAtomic struct {
 	MainQuantumNumber
 	AzimuthalQuantumNumber
 	maths.WaveFunction
@@ -41,33 +34,20 @@ type OrbitalPAtomic struct {
 	Potential               float64
 }
 
-func (s OrbitalS) Evaluate(r float64) float64 {
-	bohr := 0.52917721067                            // Bohr radius in angstroms
-	r = r / bohr                                     // Convert r to Bohr units
-	alpha := 1.0 / math.Sqrt(math.Pi*bohr*bohr*bohr) // Normalization constant for 1s orbital
-	return alpha * math.Exp(-r)
-}
-
-func (s OrbitalSAtomic) Evaluate(r float64) float64 {
+func (s SphericalOrbitalAtomic) Evaluate(r float64) float64 {
 	return s.WaveFunction(r, 0)
 }
 
-func (s OrbitalPAtomic) Evaluate(r float64, u float64) float64 {
+func (s AxialOrbitalAtomic) Evaluate(r float64, u float64) float64 {
 	return s.WaveFunction(r, u)
 }
 
-// RadialDensity calculates probability density in a sphere of r radius
-func (s OrbitalS) RadialDensity(r float64) float64 {
+func (s SphericalOrbitalAtomic) RadialDensity(r float64, mainQuantumNumber MainQuantumNumber) float64 {
 	psi := s.Evaluate(r)
 	return 4.0 * math.Pi * r * r * psi * psi
 }
 
-func (s OrbitalSAtomic) RadialDensity(r float64, mainQuantumNumber MainQuantumNumber) float64 {
-	psi := s.Evaluate(r)
-	return 4.0 * math.Pi * r * r * psi * psi
-}
-
-func (s *OrbitalSAtomic) GenerateGrid() error {
+func (s *SphericalOrbitalAtomic) GenerateGrid() error {
 	if s.MainQuantumNumber < 1 || s.MainQuantumNumber > 5 {
 		return errors.New("Invalid main quantum number")
 	}
@@ -94,7 +74,7 @@ func (s *OrbitalSAtomic) GenerateGrid() error {
 	return nil
 }
 
-func (s *OrbitalPAtomic) GenerateGrid() error {
+func (s *AxialOrbitalAtomic) GenerateGrid() error {
 	if s.MainQuantumNumber < 2 || s.MainQuantumNumber > 5 {
 		return errors.New("Invalid main quantum number")
 	}
@@ -131,11 +111,21 @@ func (s *OrbitalPAtomic) GenerateGrid() error {
 	return nil
 }
 
+/*
+Hamiltonian of hydrogen atom in atomic units (a.u.) for spherical symmetry.
+
+Operator:
+H^ = -1/2 * [ d2/dr2 + 2/r * d/dr ] - 1/r
+
+Where:
+
+	r - radial distance from nucleus
+*/
 func HydrogenSHamiltonian(interval maths.RadialInterval, i int) float64 {
 	return -0.5*(interval.SecondDerivative[i]+2*interval.FirstDerivative[i]/interval.Points[i]) - interval.Values[i]/interval.Points[i]
 }
 
-func (s *OrbitalSAtomic) CalculateEnergy() {
+func (s *SphericalOrbitalAtomic) CalculateEnergy() {
 	for i := range s.Grid {
 		interval := &s.Grid[i]
 		interval.IntegralValue = 0
@@ -146,6 +136,18 @@ func (s *OrbitalSAtomic) CalculateEnergy() {
 	s.Energy *= 4 * math.Pi
 }
 
+/*
+Hamiltonian of hydrogen atom in atomic units (a.u.) for axial symmetry.
+Substituion used: u = cos(theta), assuming d/d(phi) = 0.
+
+Operator:
+H^ = -1/2 * [ 1/r^2 * d/dr(r^2 * d/dr) + 1/r^2 * d/du((1 - u^2) * d/du) ] - 1/r
+
+Where:
+
+	r - radial distance from nucleus
+	u - cosine of polar angle (cos(theta)), lies within range [-1, 1]
+*/
 func HydrogenPHamiltonian(interval maths.IntegralArea, r int, u int) (float64, float64) {
 	kineticRadial := interval.RadialSecondDerivative[r][u] + 2*interval.RadialFirstDerivative[r][u]/interval.RadialPoints[r]
 	kineticAngular := (-2*interval.AngularPoints[u]*interval.AngularFirstDerivative[r][u] + (1-interval.AngularPoints[u]*interval.AngularPoints[u])*interval.AngularSecondDerivative[r][u]) / (interval.RadialPoints[r] * interval.RadialPoints[r])
@@ -153,7 +155,7 @@ func HydrogenPHamiltonian(interval maths.IntegralArea, r int, u int) (float64, f
 	return -0.5 * (kineticRadial + kineticAngular), -potential
 }
 
-func (s *OrbitalPAtomic) CalculateEnergy() {
+func (s *AxialOrbitalAtomic) CalculateEnergy() {
 	for i := range s.Grid {
 		interval := &s.Grid[i]
 		interval.IntegralKinetic = 0
