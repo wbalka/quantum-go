@@ -23,7 +23,7 @@ func TestHydrogen2sEnergy(t *testing.T) {
 		MainQuantumNumber:   2,
 		NumberOfIntervals:   10000,
 		IntervalSize:        2.0,
-		NumberOfGaussPoints: 32,
+		NumberOfGaussPoints: 64,
 	}
 	fmt.Printf("Calculation parameters: interval size %f, number of intervals %d, number of Gauss points %d \n", hyd.IntervalSize, hyd.NumberOfIntervals, hyd.NumberOfGaussPoints)
 	hyd.GenerateGrid()

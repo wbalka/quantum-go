@@ -28,8 +28,8 @@ func CalculateSphericallySymmetricOrbitalEnergy(
 		hyd.GenerateGrid()
 		hyd.CalculateEnergy()
 		//fmt.Printf("Calculated hydrogen ground state energy in atomic units is %.17g \n", hyd.Energy)
-		newDelta := math.Abs(exactValue - hyd.Energy)
-		if newDelta < delta {
+
+		if newDelta := math.Abs(exactValue - hyd.Energy); newDelta < delta {
 			baseEnergy = hyd.Energy
 			delta = newDelta
 			optimalGLPointsNumber = hyd.NumberOfGaussPoints
@@ -77,8 +77,7 @@ func CalculateAxiallySymmetricOrbitalEnergy(
 			hyd.GenerateGrid()
 			hyd.CalculateEnergy()
 			//fmt.Printf("Calculated hydrogen ground state energy in atomic units is %.17g \n", hyd.Energy)
-			newDelta := math.Abs(exactValue - hyd.Energy)
-			if newDelta < delta {
+			if newDelta := math.Abs(exactValue - hyd.Energy); newDelta < delta {
 				baseEnergy = hyd.Energy
 				delta = newDelta
 				optimalRadialGLPointsNumber = hyd.RadialNumberOfGLPoints

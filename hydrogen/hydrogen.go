@@ -2,8 +2,12 @@ package hydrogen
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"quantum-go/maths"
+	"runtime"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type MainQuantumNumber int
@@ -126,14 +130,28 @@ func HydrogenSHamiltonian(interval maths.RadialInterval, i int) float64 {
 }
 
 func (s *SphericalOrbitalAtomic) CalculateEnergy() {
+	var g errgroup.Group
+	g.SetLimit(runtime.NumCPU())
 	for i := range s.Grid {
 		interval := &s.Grid[i]
-		interval.IntegralValue = 0
-		interval.CalculateHamiltonian(HydrogenSHamiltonian)
-		interval.Integrate()
+		g.Go(func() error {
+			return calculateRadialInterval(interval)
+		})
+	}
+	if err := g.Wait(); err != nil {
+		fmt.Println(err.Error())
+	}
+	for _, interval := range s.Grid {
 		s.Energy += interval.IntegralValue
 	}
 	s.Energy *= 4 * math.Pi
+}
+
+func calculateRadialInterval(interval *maths.RadialInterval) error {
+	interval.IntegralValue = 0
+	interval.CalculateHamiltonian(HydrogenSHamiltonian)
+	interval.Integrate()
+	return nil
 }
 
 /*
@@ -156,16 +174,18 @@ func HydrogenPHamiltonian(interval maths.IntegralArea, r int, u int) (float64, f
 }
 
 func (s *AxialOrbitalAtomic) CalculateEnergy() {
+	var g errgroup.Group
+	g.SetLimit(runtime.NumCPU())
 	for i := range s.Grid {
 		interval := &s.Grid[i]
-		interval.IntegralKinetic = 0
-		interval.IntegralPotential = 0
-		interval.CalculateHamiltonian(HydrogenPHamiltonian)
-
+		g.Go(func() error {
+			return calculateAxialArea(interval)
+		})
 	}
-	for i := range s.Grid {
-		interval := &s.Grid[i]
-		interval.Integrate()
+	if err := g.Wait(); err != nil {
+		fmt.Println(err.Error())
+	}
+	for _, interval := range s.Grid {
 		s.Kinetic += interval.IntegralKinetic
 		s.Potential += interval.IntegralPotential
 	}
@@ -173,4 +193,12 @@ func (s *AxialOrbitalAtomic) CalculateEnergy() {
 	s.Potential *= 2 * math.Pi
 	s.Energy = s.Kinetic + s.Potential
 	//fmt.Printf("Kinetic %0.17g potential %0.17g \n", s.Kinetic, s.Potential)
+}
+
+func calculateAxialArea(area *maths.IntegralArea) error {
+	area.IntegralKinetic = 0
+	area.IntegralPotential = 0
+	area.CalculateHamiltonian(HydrogenPHamiltonian)
+	area.Integrate()
+	return nil
 }
