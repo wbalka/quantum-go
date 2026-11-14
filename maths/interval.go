@@ -1,5 +1,16 @@
 package maths
 
+import (
+	"fmt"
+	"runtime"
+
+	"golang.org/x/sync/errgroup"
+)
+
+type Interval interface {
+	Integrate()
+}
+
 type IntegralArea struct {
 	StartRadial             float64
 	EndRadial               float64
@@ -45,9 +56,11 @@ type InterpolationInterval struct {
 	Coefficients     []float64
 }
 
-type radialHamiltonian func(RadialInterval, int) float64
+type RadialHamiltonian func(RadialInterval, int) float64
 
-type sphericalHamiltonian2d func(IntegralArea, int, int) (float64, float64)
+type SphericalHamiltonian2d func(IntegralArea, int, int) (float64, float64)
+
+type Calculation func(Interval) error
 
 func (s *RadialInterval) calculateDerivatives() {
 	interpolationInterval := InterpolationInterval{
@@ -62,7 +75,7 @@ func (s *RadialInterval) calculateDerivatives() {
 	s.SecondDerivative = interpolationInterval.SecondDerivative
 }
 
-func (interval *RadialInterval) CalculateHamiltonian(fn radialHamiltonian) {
+func (interval *RadialInterval) CalculateHamiltonian(fn RadialHamiltonian) {
 	interval.calculateDerivatives()
 	interval.Hamiltonian = make([]float64, len(interval.Points))
 	for i := range interval.Points {
@@ -72,6 +85,7 @@ func (interval *RadialInterval) CalculateHamiltonian(fn radialHamiltonian) {
 }
 
 func (interval *RadialInterval) Integrate() {
+	interval.IntegralValue = 0
 	for i := range interval.Weights {
 		r := interval.Points[i]
 		integratedValue := r * r * interval.Values[i] * interval.Hamiltonian[i]
@@ -120,7 +134,7 @@ func (s *IntegralArea) calculateDerivatives() {
 	}
 }
 
-func (interval *IntegralArea) CalculateHamiltonian(fn sphericalHamiltonian2d) {
+func (interval *IntegralArea) CalculateHamiltonian(fn SphericalHamiltonian2d) {
 	interval.calculateDerivatives()
 	interval.KineticEnergy = make([][]float64, len(interval.RadialPoints))
 	interval.Potential = make([][]float64, len(interval.RadialPoints))
@@ -134,6 +148,8 @@ func (interval *IntegralArea) CalculateHamiltonian(fn sphericalHamiltonian2d) {
 }
 
 func (interval *IntegralArea) Integrate() {
+	interval.IntegralKinetic = 0
+	interval.IntegralPotential = 0
 	for i := range interval.RadialWeights {
 		for j := range interval.AngularWeights {
 			r := interval.RadialPoints[i]
@@ -142,5 +158,19 @@ func (interval *IntegralArea) Integrate() {
 			interval.IntegralKinetic += integratedKinetic * interval.RadialWeights[i] * interval.AngularWeights[j]
 			interval.IntegralPotential += integratedPotential * interval.RadialWeights[i] * interval.AngularWeights[j]
 		}
+	}
+}
+
+func ParallelCalculations[T Interval](grid []T, fn func(T) error) {
+	var g errgroup.Group
+	g.SetLimit(runtime.NumCPU())
+	for i := range grid {
+		interval := grid[i]
+		g.Go(func() error {
+			return fn(interval)
+		})
+	}
+	if err := g.Wait(); err != nil {
+		fmt.Println(err.Error())
 	}
 }
