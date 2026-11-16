@@ -3,6 +3,7 @@ package hydrogen
 import (
 	"fmt"
 	"math"
+	"time"
 )
 
 func CalculateSphericallySymmetricOrbitalEnergy(
@@ -12,6 +13,7 @@ func CalculateSphericallySymmetricOrbitalEnergy(
 	gLpointsMin int,
 	gLpointsMax int) {
 	exactValue := getActualEnergy(mainQuantumNumber)
+	var elapsed float64
 	average := 0.0
 	count := 0
 	optimalGLPointsNumber := 0
@@ -26,13 +28,16 @@ func CalculateSphericallySymmetricOrbitalEnergy(
 		}
 		//fmt.Printf("Calculation parameters: interval size %f, number of intervals %d, number of Gauss points %d \n", hyd.IntervalSize, hyd.NumberOfIntervals, hyd.NumberOfGaussPoints)
 		hyd.GenerateGrid()
+		t1 := time.Now()
 		hyd.CalculateEnergy()
+		t2 := time.Now()
 		//fmt.Printf("Calculated hydrogen ground state energy in atomic units is %.17g \n", hyd.Energy)
 
 		if newDelta := math.Abs(exactValue - hyd.Energy); newDelta < delta {
 			baseEnergy = hyd.Energy
 			delta = newDelta
 			optimalGLPointsNumber = hyd.NumberOfGaussPoints
+			elapsed = t2.Sub(t1).Seconds()
 		}
 		count++
 		average += hyd.Energy
@@ -41,6 +46,7 @@ func CalculateSphericallySymmetricOrbitalEnergy(
 	fmt.Printf("Calculation parameters \n Orbital %ds\n interval size: %f, number of intervals: %d, G-L points range: %d-%d\n", mainQuantumNumber, intervalSize, numberOfIntervals, gLpointsMin, gLpointsMax)
 	fmt.Printf("Most accurate energy:  %.17g - calculated with %d G-L points\n", baseEnergy, optimalGLPointsNumber)
 	fmt.Printf("Average energy: %.17g \n", average)
+	fmt.Printf("Computation time %g seconds \n", elapsed)
 }
 
 func CalculateAxiallySymmetricOrbitalEnergy(
@@ -56,6 +62,7 @@ func CalculateAxiallySymmetricOrbitalEnergy(
 	angGLPointsStep int) {
 	exactValue := getActualEnergy(mainQuantumNumber)
 
+	var elapsed float64
 	average := 0.0
 	count := 0
 	optimalRadialGLPointsNumber := 0
@@ -75,13 +82,16 @@ func CalculateAxiallySymmetricOrbitalEnergy(
 
 			//fmt.Printf("Calculation parameters: interval size %f, number of intervals %d, number of Gauss points %d \n", hyd.IntervalSize, hyd.NumberOfIntervals, hyd.NumberOfGaussPoints)
 			hyd.GenerateGrid()
+			t1 := time.Now()
 			hyd.CalculateEnergy()
+			t2 := time.Now()
 			//fmt.Printf("Calculated hydrogen ground state energy in atomic units is %.17g \n", hyd.Energy)
 			if newDelta := math.Abs(exactValue - hyd.Energy); newDelta < delta {
 				baseEnergy = hyd.Energy
 				delta = newDelta
 				optimalRadialGLPointsNumber = hyd.RadialNumberOfGLPoints
 				optimalAngularGLPointsNumber = hyd.AngularNumberOfGLPoints
+				elapsed = t2.Sub(t1).Seconds()
 			}
 			count++
 			average += hyd.Energy
@@ -92,6 +102,7 @@ func CalculateAxiallySymmetricOrbitalEnergy(
 		mainQuantumNumber, azimuthalQuantumNumber, areaRadialDimension, numberOfAreas, radialGLPointsMin, radialGLPointsMax, angGLPointsMin, angGLPointsMax)
 	fmt.Printf("Most accurate energy:  %.17g - calculated with %d radial and %d angular G-L points\n", baseEnergy, optimalRadialGLPointsNumber, optimalAngularGLPointsNumber)
 	fmt.Printf("Average energy: %.17g \n", average)
+	fmt.Printf("Computation time %g seconds \n", elapsed)
 }
 
 func getActualEnergy(n MainQuantumNumber) float64 {

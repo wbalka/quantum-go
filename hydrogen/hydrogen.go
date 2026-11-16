@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math"
 	"quantum-go/maths"
+	"runtime"
 )
 
 type MainQuantumNumber int
@@ -130,11 +131,13 @@ func HydrogenSHamiltonian(interval maths.RadialInterval, i int) float64 {
 }
 
 func (s *SphericalOrbitalAtomic) CalculateEnergy() {
-	maths.ParallelCalculations(s.Grid, func(interval *maths.RadialInterval) error {
-		interval.CalculateHamiltonian(s.HamiltonianFn)
-		interval.Integrate()
-		return nil
-	})
+	maths.ParallelCalculations(s.Grid,
+		func(interval *maths.RadialInterval) error {
+			interval.CalculateHamiltonian(s.HamiltonianFn)
+			interval.Integrate()
+			return nil
+		},
+		runtime.NumCPU())
 	for _, interval := range s.Grid {
 		s.Energy += interval.IntegralValue
 	}
@@ -161,11 +164,13 @@ func HydrogenPHamiltonian(interval maths.IntegralArea, r int, u int) (float64, f
 }
 
 func (s *AxialOrbitalAtomic) CalculateEnergy() {
-	maths.ParallelCalculations(s.Grid, func(interval *maths.IntegralArea) error {
-		interval.CalculateHamiltonian(s.HamiltonianFn)
-		interval.Integrate()
-		return nil
-	})
+	maths.ParallelCalculations(s.Grid,
+		func(interval *maths.IntegralArea) error {
+			interval.CalculateHamiltonian(s.HamiltonianFn)
+			interval.Integrate()
+			return nil
+		},
+		runtime.NumCPU())
 	for _, interval := range s.Grid {
 		s.Kinetic += interval.IntegralKinetic
 		s.Potential += interval.IntegralPotential

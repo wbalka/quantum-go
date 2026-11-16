@@ -2,7 +2,6 @@ package maths
 
 import (
 	"fmt"
-	"runtime"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -161,9 +160,9 @@ func (interval *IntegralArea) Integrate() {
 	}
 }
 
-func ParallelCalculations[T Interval](grid []T, fn func(T) error) {
+func ParallelCalculations[T Interval](grid []T, fn func(T) error, threadLimit int) {
 	var g errgroup.Group
-	g.SetLimit(runtime.NumCPU())
+	g.SetLimit(threadLimit)
 	for i := range grid {
 		interval := grid[i]
 		g.Go(func() error {

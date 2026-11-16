@@ -78,7 +78,7 @@ func TestHydrogen3dEnergy(t *testing.T) {
 	hyd := AxialOrbitalAtomic{
 		MainQuantumNumber:       3,
 		AzimuthalQuantumNumber:  2,
-		NumberOfAreas:           100,
+		NumberOfAreas:           10000,
 		RadialNumberOfGLPoints:  32,
 		AngularNumberOfGLPoints: 32,
 		RadialIntervalSize:      2.0,
