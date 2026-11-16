@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math"
 	"quantum-go/maths"
+	"runtime"
 )
 
 type MainQuantumNumber int
@@ -16,8 +17,9 @@ type SphericalOrbitalAtomic struct {
 	NumberOfIntervals   int
 	IntervalSize        float64
 	NumberOfGaussPoints int
-	Grid                []maths.RadialInterval
+	Grid                []*maths.RadialInterval
 	Energy              float64
+	HamiltonianFn       maths.RadialHamiltonian
 }
 
 type AxialOrbitalAtomic struct {
@@ -28,10 +30,11 @@ type AxialOrbitalAtomic struct {
 	RadialNumberOfGLPoints  int
 	AngularNumberOfGLPoints int
 	RadialIntervalSize      float64
-	Grid                    []maths.IntegralArea
+	Grid                    []*maths.IntegralArea
 	Energy                  float64
 	Kinetic                 float64
 	Potential               float64
+	HamiltonianFn           maths.SphericalHamiltonian2d
 }
 
 func (s SphericalOrbitalAtomic) Evaluate(r float64) float64 {
@@ -51,8 +54,9 @@ func (s *SphericalOrbitalAtomic) GenerateGrid() error {
 	if s.MainQuantumNumber < 1 || s.MainQuantumNumber > 5 {
 		return errors.New("Invalid main quantum number")
 	}
+	s.HamiltonianFn = HydrogenSHamiltonian
 	s.WaveFunction, _ = maths.GetWaveFunction(int(s.MainQuantumNumber), 0, 0, 1)
-	s.Grid = make([]maths.RadialInterval, s.NumberOfIntervals)
+	s.Grid = make([]*maths.RadialInterval, s.NumberOfIntervals)
 	for i := range s.NumberOfIntervals {
 		start := float64(i) * s.IntervalSize
 		end := start + s.IntervalSize
@@ -63,7 +67,7 @@ func (s *SphericalOrbitalAtomic) GenerateGrid() error {
 			weights[j] = (end - start) / 2 * weights[j]
 			values[j] = s.Evaluate(points[j])
 		}
-		s.Grid[i] = maths.RadialInterval{
+		s.Grid[i] = &maths.RadialInterval{
 			Start:   start,
 			End:     end,
 			Points:  points,
@@ -78,8 +82,9 @@ func (s *AxialOrbitalAtomic) GenerateGrid() error {
 	if s.MainQuantumNumber < 2 || s.MainQuantumNumber > 5 {
 		return errors.New("Invalid main quantum number")
 	}
+	s.HamiltonianFn = HydrogenPHamiltonian
 	s.WaveFunction, _ = maths.GetWaveFunction(int(s.MainQuantumNumber), int(s.AzimuthalQuantumNumber), 0, 1)
-	s.Grid = make([]maths.IntegralArea, s.NumberOfAreas)
+	s.Grid = make([]*maths.IntegralArea, s.NumberOfAreas)
 	for i := range s.NumberOfAreas {
 		start := float64(i) * s.RadialIntervalSize
 		end := start + s.RadialIntervalSize
@@ -94,7 +99,7 @@ func (s *AxialOrbitalAtomic) GenerateGrid() error {
 				values[j][k] = s.Evaluate(radialPoints[j], angularPoints[k])
 			}
 		}
-		s.Grid[i] = maths.IntegralArea{
+		s.Grid[i] = &maths.IntegralArea{
 			StartRadial:         start,
 			EndRadial:           end,
 			StartAngular:        -1,
@@ -126,11 +131,14 @@ func HydrogenSHamiltonian(interval maths.RadialInterval, i int) float64 {
 }
 
 func (s *SphericalOrbitalAtomic) CalculateEnergy() {
-	for i := range s.Grid {
-		interval := &s.Grid[i]
-		interval.IntegralValue = 0
-		interval.CalculateHamiltonian(HydrogenSHamiltonian)
-		interval.Integrate()
+	maths.ParallelCalculations(s.Grid,
+		func(interval *maths.RadialInterval) error {
+			interval.CalculateHamiltonian(s.HamiltonianFn)
+			interval.Integrate()
+			return nil
+		},
+		runtime.NumCPU())
+	for _, interval := range s.Grid {
 		s.Energy += interval.IntegralValue
 	}
 	s.Energy *= 4 * math.Pi
@@ -156,16 +164,14 @@ func HydrogenPHamiltonian(interval maths.IntegralArea, r int, u int) (float64, f
 }
 
 func (s *AxialOrbitalAtomic) CalculateEnergy() {
-	for i := range s.Grid {
-		interval := &s.Grid[i]
-		interval.IntegralKinetic = 0
-		interval.IntegralPotential = 0
-		interval.CalculateHamiltonian(HydrogenPHamiltonian)
-
-	}
-	for i := range s.Grid {
-		interval := &s.Grid[i]
-		interval.Integrate()
+	maths.ParallelCalculations(s.Grid,
+		func(interval *maths.IntegralArea) error {
+			interval.CalculateHamiltonian(s.HamiltonianFn)
+			interval.Integrate()
+			return nil
+		},
+		runtime.NumCPU())
+	for _, interval := range s.Grid {
 		s.Kinetic += interval.IntegralKinetic
 		s.Potential += interval.IntegralPotential
 	}
