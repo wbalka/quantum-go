@@ -32,6 +32,35 @@ type IntegralArea struct {
 	IntegralPotential       float64
 }
 
+type IntegralVolume struct {
+	StartRadial               float64
+	EndRadial                 float64
+	StartAngular              float64
+	EndAngular                float64
+	RadialIntervalSize        float64
+	AngularIntervalSize       float64
+	StartAzimuthal            float64
+	EndAzimuthal              float64
+	AzimuthalIntervalSize     float64
+	RadialPoints              []float64
+	RadialWeights             []float64
+	AngularPoints             []float64
+	AngularWeights            []float64
+	AzimuthalPoints           []float64
+	AzimuthalWeights          []float64
+	Values                    [][][]float64
+	RadialFirstDerivative     [][][]float64
+	RadialSecondDerivative    [][][]float64
+	AngularFirstDerivative    [][][]float64
+	AngularSecondDerivative   [][][]float64
+	AzimuthalFirstDerivative  [][][]float64
+	AzimuthalSecondDerivative [][][]float64
+	KineticEnergy             [][][]float64
+	Potential                 [][][]float64
+	IntegralKinetic           float64
+	IntegralPotential         float64
+}
+
 type RadialInterval struct {
 	Start            float64
 	End              float64

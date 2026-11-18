@@ -11,6 +11,8 @@ type MainQuantumNumber int
 
 type AzimuthalQuantumNumber int
 
+type MagneticQuantumNumber int
+
 type SphericalOrbitalAtomic struct {
 	MainQuantumNumber
 	maths.WaveFunction
@@ -161,6 +163,27 @@ func HydrogenPHamiltonian(interval maths.IntegralArea, r int, u int) (float64, f
 	kineticAngular := (-2*interval.AngularPoints[u]*interval.AngularFirstDerivative[r][u] + (1-interval.AngularPoints[u]*interval.AngularPoints[u])*interval.AngularSecondDerivative[r][u]) / (interval.RadialPoints[r] * interval.RadialPoints[r])
 	potential := interval.Values[r][u] / interval.RadialPoints[r]
 	return -0.5 * (kineticRadial + kineticAngular), -potential
+}
+
+/*
+Hamiltonian of hydrogen atom in atomic units (a.u.) without any assumed symmetry.
+Substituion used: u = cos(theta).
+
+Operator:
+H^ = -1/2 * [ 1/r^2 * d/dr(r^2 * d/dr) + 1/r^2 * d/du((1 - u^2) * d/du) + 1/(r^2 * (1 - u^2)) * d2/dphi2] - 1/r
+
+Where:
+
+	r - radial distance from nucleus
+	u - cosine of polar angle (cos(theta)), lies within range [-1, 1]
+	phi - azimuthal angle [0, 2pi]
+*/
+func HydrogenDHamiltonian(interval maths.IntegralVolume, r int, u int, ph int) (float64, float64) {
+	kineticRadial := interval.RadialSecondDerivative[r][u][ph] + 2*interval.RadialFirstDerivative[r][u][ph]/interval.RadialPoints[r]
+	kineticAngular := (-2*interval.AngularPoints[u]*interval.AngularFirstDerivative[r][u][ph] + (1-interval.AngularPoints[u]*interval.AngularPoints[u])*interval.AngularSecondDerivative[r][u][ph]) / (interval.RadialPoints[r] * interval.RadialPoints[r])
+	kineticAzimuthal := interval.AzimuthalSecondDerivative[r][u][ph] / (interval.RadialPoints[r] * interval.RadialPoints[r] * (1 - interval.AngularPoints[u]*interval.AngularPoints[u]))
+	potential := interval.Values[r][u][ph] / interval.RadialPoints[r]
+	return -0.5 * (kineticRadial + kineticAngular + kineticAzimuthal), -potential
 }
 
 func (s *AxialOrbitalAtomic) CalculateEnergy() {
