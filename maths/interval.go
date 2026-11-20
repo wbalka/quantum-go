@@ -88,6 +88,8 @@ type RadialHamiltonian func(RadialInterval, int) float64
 
 type SphericalHamiltonian2d func(IntegralArea, int, int) (float64, float64)
 
+type SphericalHamiltonian3d func(IntegralArea, int, int, int) (float64, float64)
+
 type Calculation func(Interval) error
 
 func (s *RadialInterval) calculateDerivatives() {

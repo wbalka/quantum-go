@@ -39,12 +39,31 @@ type AxialOrbitalAtomic struct {
 	HamiltonianFn           maths.SphericalHamiltonian2d
 }
 
+type Universal3DOrbitalAtomic struct {
+	MainQuantumNumber
+	AzimuthalQuantumNumber
+	MagneticQuantumNumber
+	maths.WaveFunction
+	NumberOfLayers             int
+	NumberOfAzimuthalIntervals int
+	RadialNumberOfGLPoints     int
+	AngularNumberOfGLPoints    int
+	AzimuthalNumberOfGLPoints  int
+	RadialIntervalSize         float64
+	AzimuthalIntervalSize      float64
+	Grid                       []*maths.IntegralVolume
+	Energy                     float64
+	Kinetic                    float64
+	Potential                  float64
+	HamiltonianFn              maths.SphericalHamiltonian3d
+}
+
 func (s SphericalOrbitalAtomic) Evaluate(r float64) float64 {
-	return s.WaveFunction(r, 0)
+	return s.WaveFunction(r, 0, 0)
 }
 
 func (s AxialOrbitalAtomic) Evaluate(r float64, u float64) float64 {
-	return s.WaveFunction(r, u)
+	return s.WaveFunction(r, u, 0)
 }
 
 func (s SphericalOrbitalAtomic) RadialDensity(r float64, mainQuantumNumber MainQuantumNumber) float64 {

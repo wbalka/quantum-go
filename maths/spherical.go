@@ -5,7 +5,7 @@ import (
 	"math"
 )
 
-type SphericalHarm func(float64) float64
+type SphericalHarm func(float64, float64) float64
 
 /*
 Spherical harmocis are the angular solutions when solving Laplace's equation in spherical coordinates
@@ -16,22 +16,46 @@ func GetSphericalHarm(l int, m int) (SphericalHarm, error) {
 	case 0:
 		switch m {
 		case 0:
-			return func(u float64) float64 {
+			return func(u float64, phi float64) float64 {
 				return 1.0 / (2.0 * math.Sqrt(math.Pi))
 			}, nil
 		}
 	case 1:
 		switch m {
 		case 0:
-			return func(u float64) float64 {
+			return func(u float64, phi float64) float64 {
 				return 0.5 * math.Sqrt(3/math.Pi) * u
+			}, nil
+		case 1:
+			return func(u float64, phi float64) float64 {
+				return -0.5 * math.Sqrt(3/(2*math.Pi)) * math.Sqrt(1-u*u) * math.Cos(phi)
+			}, nil
+		case -1:
+			return func(u float64, phi float64) float64 {
+				return 0.5 * math.Sqrt(3/(2*math.Pi)) * math.Sqrt(1-u*u) * math.Sin(phi)
 			}, nil
 		}
 	case 2:
 		switch m {
 		case 0:
-			return func(u float64) float64 {
+			return func(u float64, phi float64) float64 {
 				return 0.25 * math.Sqrt(5/math.Pi) * (3*u*u - 1)
+			}, nil
+		case 1:
+			return func(u float64, phi float64) float64 {
+				return 0.5 * math.Sqrt(15/math.Pi) * math.Sqrt(1-u*u) * math.Cos(2*phi)
+			}, nil
+		case -1:
+			return func(u float64, phi float64) float64 {
+				return -0.5 * math.Sqrt(15/(2*math.Pi)) * math.Sqrt(1-u*u) * math.Sin(2*phi)
+			}, nil
+		case 2:
+			return func(u float64, phi float64) float64 {
+				return 0.25 * math.Sqrt(15/math.Pi) * (1 - u*u) * math.Cos(2*phi)
+			}, nil
+		case -2:
+			return func(u float64, phi float64) float64 {
+				return -0.25 * math.Sqrt(15/math.Pi) * (1 - u*u) * math.Sin(2*phi)
 			}, nil
 		}
 	}
