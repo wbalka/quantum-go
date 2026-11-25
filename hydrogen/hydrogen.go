@@ -2,6 +2,7 @@ package hydrogen
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"quantum-go/maths"
 	"runtime"
@@ -10,6 +11,8 @@ import (
 type MainQuantumNumber int
 
 type AzimuthalQuantumNumber int
+
+type MagneticQuantumNumber int
 
 type SphericalOrbitalAtomic struct {
 	MainQuantumNumber
@@ -30,6 +33,7 @@ type AxialOrbitalAtomic struct {
 	RadialNumberOfGLPoints  int
 	AngularNumberOfGLPoints int
 	RadialIntervalSize      float64
+	AngularIntervalSize     float64
 	Grid                    []*maths.IntegralArea
 	Energy                  float64
 	Kinetic                 float64
@@ -37,12 +41,36 @@ type AxialOrbitalAtomic struct {
 	HamiltonianFn           maths.SphericalHamiltonian2d
 }
 
-func (s SphericalOrbitalAtomic) Evaluate(r float64) float64 {
-	return s.WaveFunction(r, 0)
+type Universal3DOrbitalAtomic struct {
+	MainQuantumNumber
+	AzimuthalQuantumNumber
+	MagneticQuantumNumber
+	maths.WaveFunction
+	NumberOfLayers             int
+	NumberOfAzimuthalIntervals int
+	RadialNumberOfGLPoints     int
+	AngularNumberOfGLPoints    int
+	AzimuthalNumberOfGLPoints  int
+	RadialIntervalSize         float64
+	AzimuthalIntervalSize      float64
+	AngularIntervalSize        float64
+	Grid                       []*maths.IntegralVolume
+	Energy                     float64
+	Kinetic                    float64
+	Potential                  float64
+	HamiltonianFn              maths.SphericalHamiltonian3d
 }
 
-func (s AxialOrbitalAtomic) Evaluate(r float64, u float64) float64 {
-	return s.WaveFunction(r, u)
+func (s SphericalOrbitalAtomic) Evaluate(r float64) float64 {
+	return s.WaveFunction(r, 0, 0)
+}
+
+func (s AxialOrbitalAtomic) Evaluate(r float64, th float64) float64 {
+	return s.WaveFunction(r, th, 0)
+}
+
+func (s Universal3DOrbitalAtomic) Evaluate(r float64, th float64, phi float64) float64 {
+	return s.WaveFunction(r, th, phi)
 }
 
 func (s SphericalOrbitalAtomic) RadialDensity(r float64, mainQuantumNumber MainQuantumNumber) float64 {
@@ -85,27 +113,34 @@ func (s *AxialOrbitalAtomic) GenerateGrid() error {
 	s.HamiltonianFn = HydrogenPHamiltonian
 	s.WaveFunction, _ = maths.GetWaveFunction(int(s.MainQuantumNumber), int(s.AzimuthalQuantumNumber), 0, 1)
 	s.Grid = make([]*maths.IntegralArea, s.NumberOfAreas)
+	s.AngularIntervalSize = math.Pi
 	for i := range s.NumberOfAreas {
-		start := float64(i) * s.RadialIntervalSize
-		end := start + s.RadialIntervalSize
+		rStart := float64(i) * s.RadialIntervalSize
+		rEnd := rStart + s.RadialIntervalSize
+		angStart := 0.0
+		angEnd := angStart + s.AngularIntervalSize
 		radialPoints, radialWeights, _ := maths.GaussLegendrePointsWeights(s.RadialNumberOfGLPoints)
-		angularPoints, angularWeights, _ := maths.GaussLegendrePointsWeights(s.AngularNumberOfGLPoints)
+		baseAngularPoints, baseAngularWeights, _ := maths.GaussLegendrePointsWeights(s.AngularNumberOfGLPoints)
+		angularPoints := make([]float64, len(baseAngularPoints))
+		angularWeights := make([]float64, len(baseAngularWeights))
 		values := make([][]float64, s.RadialNumberOfGLPoints)
 		for j := range radialPoints {
-			radialPoints[j] = (end-start)/2*radialPoints[j] + (end+start)/2
-			radialWeights[j] = (end - start) / 2 * radialWeights[j]
+			radialPoints[j] = (rEnd-rStart)/2*radialPoints[j] + (rEnd+rStart)/2
+			radialWeights[j] = (rEnd - rStart) / 2 * radialWeights[j]
 			values[j] = make([]float64, s.AngularNumberOfGLPoints)
-			for k := range angularPoints {
+			for k := range baseAngularPoints {
+				angularPoints[k] = (angEnd-angStart)/2*baseAngularPoints[k] + (angEnd+angStart)/2
+				angularWeights[k] = (angEnd - angStart) / 2 * baseAngularWeights[k]
 				values[j][k] = s.Evaluate(radialPoints[j], angularPoints[k])
 			}
 		}
 		s.Grid[i] = &maths.IntegralArea{
-			StartRadial:         start,
-			EndRadial:           end,
-			StartAngular:        -1,
-			EndAngular:          1,
+			StartRadial:         rStart,
+			EndRadial:           rEnd,
+			StartAngular:        0,
+			EndAngular:          math.Pi,
 			RadialIntervalSize:  s.RadialIntervalSize,
-			AngularIntervalSize: 2.0,
+			AngularIntervalSize: math.Pi,
 			RadialPoints:        radialPoints,
 			RadialWeights:       radialWeights,
 			AngularPoints:       angularPoints,
@@ -113,6 +148,82 @@ func (s *AxialOrbitalAtomic) GenerateGrid() error {
 			Values:              values,
 		}
 	}
+	return nil
+}
+
+func (s *Universal3DOrbitalAtomic) GenerateGrid() error {
+	if s.MainQuantumNumber < 2 || s.MainQuantumNumber > 5 {
+		return errors.New("Invalid main quantum number")
+	} else if s.AzimuthalQuantumNumber < 0 || s.AzimuthalQuantumNumber > AzimuthalQuantumNumber(s.MainQuantumNumber-1) {
+		return errors.New("Invalid azimuthal quantum number")
+	} else if s.MagneticQuantumNumber < -MagneticQuantumNumber(s.AzimuthalQuantumNumber) || s.MagneticQuantumNumber > MagneticQuantumNumber(s.AzimuthalQuantumNumber) {
+		return errors.New("Invalid magnetic quantum number")
+	}
+	s.HamiltonianFn = HydrogenDHamiltonian
+	s.WaveFunction, _ = maths.GetWaveFunction(int(s.MainQuantumNumber), int(s.AzimuthalQuantumNumber), int(s.MagneticQuantumNumber), 1)
+	s.Grid = make([]*maths.IntegralVolume, s.NumberOfAzimuthalIntervals*s.NumberOfLayers)
+	gridIndex := 0
+	s.AzimuthalIntervalSize = 2 * math.Pi / float64(s.NumberOfAzimuthalIntervals)
+	s.AngularIntervalSize = math.Pi
+	baseRadialPoints, baseRadialWeights, _ := maths.GaussLegendrePointsWeights(s.RadialNumberOfGLPoints)
+	baseAzimuthalPoints, baseAzimuthalWeights, _ := maths.GaussLegendrePointsWeights(s.AzimuthalNumberOfGLPoints)
+	baseAngularPoints, baseAngularWeights, _ := maths.GaussLegendrePointsWeights(s.AngularNumberOfGLPoints)
+	for az := range s.NumberOfAzimuthalIntervals {
+		azimuthalPoints := make([]float64, len(baseAzimuthalPoints))
+		azimuthalWeights := make([]float64, len(baseAzimuthalWeights))
+		azStart := float64(az) * s.AzimuthalIntervalSize
+		azEnd := azStart + s.AzimuthalIntervalSize
+		for k := range azimuthalPoints {
+			azimuthalPoints[k] = (azEnd-azStart)/2*baseAzimuthalPoints[k] + (azEnd+azStart)/2
+			azimuthalWeights[k] = (azEnd - azStart) / 2 * baseAzimuthalWeights[k]
+		}
+		for ly := range s.NumberOfLayers {
+			rStart := float64(ly) * s.RadialIntervalSize
+			rEnd := rStart + s.RadialIntervalSize
+			radialPoints := make([]float64, len(baseRadialPoints))
+			radialWeights := make([]float64, len(baseRadialWeights))
+			angularPoints := make([]float64, len(baseAngularPoints))
+			angularWeights := make([]float64, len(baseAngularWeights))
+			angStart := 0.0
+			angEnd := angStart + s.AngularIntervalSize
+			for i := range baseRadialPoints {
+				radialPoints[i] = (rEnd-rStart)/2*baseRadialPoints[i] + (rEnd+rStart)/2
+				radialWeights[i] = (rEnd - rStart) / 2 * baseRadialWeights[i]
+			}
+			values := make([][][]float64, s.RadialNumberOfGLPoints)
+			for i := range baseRadialPoints {
+				values[i] = make([][]float64, s.AngularNumberOfGLPoints)
+				for j := range baseAngularPoints {
+					angularPoints[j] = (angEnd-angStart)/2*baseAngularPoints[j] + (angEnd+angStart)/2
+					angularWeights[j] = (angEnd - angStart) / 2 * baseAngularWeights[j]
+					values[i][j] = make([]float64, s.AzimuthalNumberOfGLPoints)
+					for k := range azimuthalPoints {
+						values[i][j][k] = s.Evaluate(radialPoints[i], angularPoints[j], azimuthalPoints[k])
+					}
+				}
+			}
+			s.Grid[gridIndex] = &maths.IntegralVolume{
+				StartRadial:           rStart,
+				EndRadial:             rEnd,
+				StartAngular:          0,
+				EndAngular:            math.Pi,
+				RadialIntervalSize:    s.RadialIntervalSize,
+				AngularIntervalSize:   math.Pi,
+				StartAzimuthal:        azStart,
+				EndAzimuthal:          azEnd,
+				AzimuthalIntervalSize: s.AzimuthalIntervalSize,
+				RadialPoints:          radialPoints,
+				RadialWeights:         radialWeights,
+				AngularPoints:         angularPoints,
+				AngularWeights:        angularWeights,
+				AzimuthalPoints:       azimuthalPoints,
+				AzimuthalWeights:      azimuthalWeights,
+				Values:                values,
+			}
+			gridIndex++
+		}
+	}
+
 	return nil
 }
 
@@ -156,11 +267,34 @@ Where:
 	r - radial distance from nucleus
 	u - cosine of polar angle (cos(theta)), lies within range [-1, 1]
 */
-func HydrogenPHamiltonian(interval maths.IntegralArea, r int, u int) (float64, float64) {
-	kineticRadial := interval.RadialSecondDerivative[r][u] + 2*interval.RadialFirstDerivative[r][u]/interval.RadialPoints[r]
-	kineticAngular := (-2*interval.AngularPoints[u]*interval.AngularFirstDerivative[r][u] + (1-interval.AngularPoints[u]*interval.AngularPoints[u])*interval.AngularSecondDerivative[r][u]) / (interval.RadialPoints[r] * interval.RadialPoints[r])
-	potential := interval.Values[r][u] / interval.RadialPoints[r]
+func HydrogenPHamiltonian(interval maths.IntegralArea, r int, t int) (float64, float64) {
+	kineticRadial := interval.RadialSecondDerivative[r][t] + 2*interval.RadialFirstDerivative[r][t]/interval.RadialPoints[r]
+	kineticAngular := (math.Cos(interval.AngularPoints[t])*interval.AngularFirstDerivative[r][t]/math.Sin(interval.AngularPoints[t]) + interval.AngularSecondDerivative[r][t]) / (interval.RadialPoints[r] * interval.RadialPoints[r])
+	potential := interval.Values[r][t] / interval.RadialPoints[r]
 	return -0.5 * (kineticRadial + kineticAngular), -potential
+}
+
+/*
+Hamiltonian of hydrogen atom in atomic units (a.u.) without any assumed symmetry.
+Substituion used: u = cos(theta).
+
+Operator:
+H^ = -1/2 * [ 1/r^2 * d/dr(r^2 * d/dr) + 1/r^2 * d/du((1 - u^2) * d/du) + 1/(r^2 * (1 - u^2)) * d2/dphi2] - 1/r
+
+Where:
+
+	r - radial distance from nucleus
+	u - cosine of polar angle (cos(theta)), lies within range [-1, 1]
+	phi - azimuthal angle [0, 2pi]
+*/
+func HydrogenDHamiltonian(interval maths.IntegralVolume, r int, t int, ph int) (float64, float64) {
+	kineticRadial := interval.RadialSecondDerivative[r][t][ph] + 2*interval.RadialFirstDerivative[r][t][ph]/interval.RadialPoints[r]
+	//kineticAngular := (-2*interval.AngularPoints[t]*interval.AngularFirstDerivative[r][t][ph] + (1-interval.AngularPoints[t]*interval.AngularPoints[t])*interval.AngularSecondDerivative[r][t][ph]) / (interval.RadialPoints[r] * interval.RadialPoints[r])
+	kineticAngular := (math.Cos(interval.AngularPoints[t])*interval.AngularFirstDerivative[r][t][ph]/math.Sin(interval.AngularPoints[t]) + interval.AngularSecondDerivative[r][t][ph]) / (interval.RadialPoints[r] * interval.RadialPoints[r])
+
+	kineticAzimuthal := interval.AzimuthalSecondDerivative[r][t][ph] / (interval.RadialPoints[r] * interval.RadialPoints[r] * math.Sin(interval.AngularPoints[t]) * math.Sin(interval.AngularPoints[t]))
+	potential := interval.Values[r][t][ph] / interval.RadialPoints[r]
+	return -0.5 * (kineticRadial + kineticAngular + kineticAzimuthal), -potential
 }
 
 func (s *AxialOrbitalAtomic) CalculateEnergy() {
@@ -178,5 +312,32 @@ func (s *AxialOrbitalAtomic) CalculateEnergy() {
 	s.Kinetic *= 2 * math.Pi
 	s.Potential *= 2 * math.Pi
 	s.Energy = s.Kinetic + s.Potential
+	fmt.Printf("Kinetic %0.17g potential %0.17g \n", s.Kinetic, s.Potential)
+}
+
+func (s *Universal3DOrbitalAtomic) CalculateEnergy() {
+	maths.ParallelCalculations(s.Grid,
+		func(interval *maths.IntegralVolume) error {
+			interval.CalculateHamiltonian(s.HamiltonianFn)
+			interval.Integrate()
+			return nil
+		},
+		runtime.NumCPU())
+	for _, interval := range s.Grid {
+		s.Kinetic += interval.IntegralKinetic
+		s.Potential += interval.IntegralPotential
+	}
+	s.Energy = s.Kinetic + s.Potential
 	//fmt.Printf("Kinetic %0.17g potential %0.17g \n", s.Kinetic, s.Potential)
+}
+
+func (s *Universal3DOrbitalAtomic) CalculateEnergySeq() {
+	for _, interval := range s.Grid {
+		interval.CalculateHamiltonian(s.HamiltonianFn)
+		interval.Integrate()
+		s.Kinetic += interval.IntegralKinetic
+		s.Potential += interval.IntegralPotential
+	}
+	s.Energy = s.Kinetic + s.Potential
+	fmt.Printf("Kinetic %0.17g potential %0.17g \n", s.Kinetic, s.Potential)
 }

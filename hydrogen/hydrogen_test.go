@@ -88,3 +88,96 @@ func TestHydrogen3dEnergy(t *testing.T) {
 	hyd.CalculateEnergy()
 	fmt.Printf("Eneergy is %.17g\n", hyd.Energy)
 }
+
+func TestHydrogenEnergyMagnetic4F(t *testing.T) {
+	for m := -3; m <= 3; m++ {
+		hyd := Universal3DOrbitalAtomic{
+			MainQuantumNumber:          4,
+			AzimuthalQuantumNumber:     3,
+			MagneticQuantumNumber:      MagneticQuantumNumber(m),
+			NumberOfLayers:             100,
+			NumberOfAzimuthalIntervals: 4,
+			RadialNumberOfGLPoints:     16,
+			AngularNumberOfGLPoints:    32,
+			AzimuthalNumberOfGLPoints:  16,
+			RadialIntervalSize:         2.0,
+		}
+		fmt.Printf("Calculation parameters: interval size %f, number of layers %d, number of Gauss points %d \n", hyd.RadialIntervalSize, hyd.NumberOfLayers, hyd.RadialNumberOfGLPoints)
+		fmt.Printf("n=%d l=%d m=%d\n", hyd.MainQuantumNumber, hyd.AzimuthalQuantumNumber, hyd.MagneticQuantumNumber)
+		hyd.GenerateGrid()
+		hyd.CalculateEnergy()
+		fmt.Printf("Eneergy is %.17g\n", hyd.Energy)
+	}
+}
+
+func TestHydrogen3dEnergyMagnetic5F(t *testing.T) {
+	for m := -3; m <= 3; m++ {
+		hyd := Universal3DOrbitalAtomic{
+			MainQuantumNumber:          5,
+			AzimuthalQuantumNumber:     3,
+			MagneticQuantumNumber:      MagneticQuantumNumber(m),
+			NumberOfLayers:             100,
+			NumberOfAzimuthalIntervals: 8,
+			RadialNumberOfGLPoints:     16,
+			AngularNumberOfGLPoints:    32,
+			AzimuthalNumberOfGLPoints:  16,
+			RadialIntervalSize:         2.0,
+		}
+		fmt.Printf("Calculation parameters: interval size %f, number of layers %d, number of Gauss points %d \n", hyd.RadialIntervalSize, hyd.NumberOfLayers, hyd.RadialNumberOfGLPoints)
+		fmt.Printf("n=%d l=%d m=%d\n", hyd.MainQuantumNumber, hyd.AzimuthalQuantumNumber, hyd.MagneticQuantumNumber)
+		hyd.GenerateGrid()
+		hyd.CalculateEnergy()
+		fmt.Printf("Eneergy is %.17g\n", hyd.Energy)
+	}
+}
+
+func TestGenerateGrid3d(t *testing.T) {
+	hyd := Universal3DOrbitalAtomic{
+		MainQuantumNumber:          2,
+		AzimuthalQuantumNumber:     0,
+		MagneticQuantumNumber:      0,
+		NumberOfLayers:             100,
+		NumberOfAzimuthalIntervals: 4,
+		RadialNumberOfGLPoints:     16,
+		AngularNumberOfGLPoints:    16,
+		AzimuthalNumberOfGLPoints:  16,
+		RadialIntervalSize:         2.0,
+	}
+	hyd.GenerateGrid()
+	value_1 := hyd.Grid[0].Values[10][7][11]
+	value_3 := hyd.Grid[100].Values[10][7][11]
+	hyd_2 := SphericalOrbitalAtomic{
+		MainQuantumNumber:   2,
+		NumberOfIntervals:   100,
+		IntervalSize:        2.0,
+		NumberOfGaussPoints: 16,
+	}
+	hyd_2.GenerateGrid()
+	value_2 := hyd_2.Grid[0].Values[10]
+	fmt.Printf("Received value %0.17g, expected %0.17g\n", value_1, value_2)
+	fmt.Println(value_3)
+	if value_1 != value_2 {
+		t.Error("Bad grid generator!")
+	}
+}
+
+func TestGenerateGrid3dMagnetic(t *testing.T) {
+	hyd := Universal3DOrbitalAtomic{
+		MainQuantumNumber:          3,
+		AzimuthalQuantumNumber:     2,
+		MagneticQuantumNumber:      -2,
+		NumberOfLayers:             100,
+		NumberOfAzimuthalIntervals: 4,
+		RadialNumberOfGLPoints:     16,
+		AngularNumberOfGLPoints:    16,
+		AzimuthalNumberOfGLPoints:  16,
+		RadialIntervalSize:         2.0,
+	}
+	hyd.GenerateGrid()
+	value_1 := hyd.Grid[2].Values[10][7][11]
+	value_2 := hyd.Grid[102].Values[10][7][11]
+	fmt.Printf("Received value %0.17g, expected %0.17g\n", value_2, value_1)
+	if value_1 == value_2 {
+		t.Error("Bad grid generator!")
+	}
+}
