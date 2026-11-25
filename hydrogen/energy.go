@@ -105,6 +105,75 @@ func CalculateAxiallySymmetricOrbitalEnergy(
 	fmt.Printf("Computation time %g seconds \n", elapsed)
 }
 
+func CalculateAnyOrbitalEnergy(
+	mainQuantumNumber MainQuantumNumber,
+	azimuthalQuantumNumber AzimuthalQuantumNumber,
+	magneticQuantumNumber MagneticQuantumNumber,
+	areaRadialDimension float64,
+	numberOfLayers int,
+	numberOfSphericalIntervals int,
+	radialGLPointsMin int,
+	radialGLPointsMax int,
+	radialGLPointsStep int,
+	angGLPointsMin int,
+	angGLPointsMax int,
+	angGLPointsStep int,
+	azGLPointsMin int,
+	azGLPointsMax int,
+	azGLPointsStep int,
+) {
+	exactValue := getActualEnergy(mainQuantumNumber)
+
+	var elapsed float64
+	average := 0.0
+	count := 0
+	optimalRadialGLPointsNumber := 0
+	optimalAngularGLPointsNumber := 0
+	optimalAzimuthalGLPointsNumber := 0
+	baseEnergy := 0.0
+	delta := math.Abs(exactValue - baseEnergy)
+	for rd := radialGLPointsMin; rd <= radialGLPointsMax; rd += radialGLPointsStep {
+		for an := angGLPointsMin; an <= angGLPointsMax; an += angGLPointsStep {
+			for az := azGLPointsMin; az <= azGLPointsMax; az += azGLPointsStep {
+				hyd := Universal3DOrbitalAtomic{
+					MainQuantumNumber:          mainQuantumNumber,
+					AzimuthalQuantumNumber:     azimuthalQuantumNumber,
+					MagneticQuantumNumber:      magneticQuantumNumber,
+					NumberOfLayers:             numberOfLayers,
+					NumberOfAzimuthalIntervals: numberOfSphericalIntervals,
+					RadialNumberOfGLPoints:     rd,
+					AngularNumberOfGLPoints:    an,
+					AzimuthalNumberOfGLPoints:  az,
+					RadialIntervalSize:         areaRadialDimension,
+				}
+
+				//fmt.Printf("Calculation parameters: interval size %f, number of intervals %d, number of Gauss points %d \n", hyd.IntervalSize, hyd.NumberOfIntervals, hyd.NumberOfGaussPoints)
+				hyd.GenerateGrid()
+				t1 := time.Now()
+				hyd.CalculateEnergy()
+				t2 := time.Now()
+				//fmt.Printf("Calculated hydrogen ground state energy in atomic units is %.17g \n", hyd.Energy)
+				if newDelta := math.Abs(exactValue - hyd.Energy); newDelta < delta {
+					baseEnergy = hyd.Energy
+					delta = newDelta
+					optimalRadialGLPointsNumber = hyd.RadialNumberOfGLPoints
+					optimalAngularGLPointsNumber = hyd.AngularNumberOfGLPoints
+					optimalAzimuthalGLPointsNumber = hyd.AzimuthalNumberOfGLPoints
+					elapsed = t2.Sub(t1).Seconds()
+				}
+				count++
+				average += hyd.Energy
+			}
+		}
+	}
+	average = average / float64(count)
+	fmt.Printf("Calculation parameters \n Orbital n=%d l=%d m=%d\n Area radial size: %f, number of areas: %d, radial G-L points range: %d-%d\n angular G-L points range %d-%d\n angular G-L points range %d-%d\n",
+		mainQuantumNumber, azimuthalQuantumNumber, magneticQuantumNumber, areaRadialDimension, numberOfLayers, radialGLPointsMin, radialGLPointsMax, angGLPointsMin, angGLPointsMax, azGLPointsMin, azGLPointsMax)
+	fmt.Printf("Most accurate energy:  %.17g - calculated with %d radial and %d angular %d azimuthal G-L points\n", baseEnergy, optimalRadialGLPointsNumber, optimalAngularGLPointsNumber, optimalAzimuthalGLPointsNumber)
+	fmt.Printf("Average energy: %.17g \n", average)
+	fmt.Printf("Computation time %g seconds \n", elapsed)
+}
+
 func getActualEnergy(n MainQuantumNumber) float64 {
 	switch n {
 	case 1:

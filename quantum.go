@@ -35,4 +35,5 @@ func main() {
 	hydrogen.CalculateAxiallySymmetricOrbitalEnergy(3, 2, 2.0, 100, 24, 40, 1, 24, 40, 1)
 	hydrogen.CalculateAxiallySymmetricOrbitalEnergy(4, 1, 2.0, 100, 24, 40, 1, 24, 40, 1)
 	hydrogen.CalculateAxiallySymmetricOrbitalEnergy(4, 2, 2.0, 100, 24, 40, 1, 24, 40, 1)
+	hydrogen.CalculateAnyOrbitalEnergy(5, 3, -1, 2.0, 100, 4, 12, 20, 2, 12, 20, 4, 12, 20, 2)
 }

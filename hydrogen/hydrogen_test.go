@@ -89,22 +89,46 @@ func TestHydrogen3dEnergy(t *testing.T) {
 	fmt.Printf("Eneergy is %.17g\n", hyd.Energy)
 }
 
-func TestHydrogen3dEnergyMagnetic(t *testing.T) {
-	hyd := Universal3DOrbitalAtomic{
-		MainQuantumNumber:          3,
-		AzimuthalQuantumNumber:     2,
-		MagneticQuantumNumber:      -1,
-		NumberOfLayers:             100,
-		NumberOfAzimuthalIntervals: 4,
-		RadialNumberOfGLPoints:     16,
-		AngularNumberOfGLPoints:    96,
-		AzimuthalNumberOfGLPoints:  16,
-		RadialIntervalSize:         2.0,
+func TestHydrogenEnergyMagnetic4F(t *testing.T) {
+	for m := -3; m <= 3; m++ {
+		hyd := Universal3DOrbitalAtomic{
+			MainQuantumNumber:          4,
+			AzimuthalQuantumNumber:     3,
+			MagneticQuantumNumber:      MagneticQuantumNumber(m),
+			NumberOfLayers:             100,
+			NumberOfAzimuthalIntervals: 4,
+			RadialNumberOfGLPoints:     16,
+			AngularNumberOfGLPoints:    32,
+			AzimuthalNumberOfGLPoints:  16,
+			RadialIntervalSize:         2.0,
+		}
+		fmt.Printf("Calculation parameters: interval size %f, number of layers %d, number of Gauss points %d \n", hyd.RadialIntervalSize, hyd.NumberOfLayers, hyd.RadialNumberOfGLPoints)
+		fmt.Printf("n=%d l=%d m=%d\n", hyd.MainQuantumNumber, hyd.AzimuthalQuantumNumber, hyd.MagneticQuantumNumber)
+		hyd.GenerateGrid()
+		hyd.CalculateEnergy()
+		fmt.Printf("Eneergy is %.17g\n", hyd.Energy)
 	}
-	fmt.Printf("Calculation parameters: interval size %f, number of layers %d, number of Gauss points %d \n", hyd.RadialIntervalSize, hyd.NumberOfLayers, hyd.RadialNumberOfGLPoints)
-	hyd.GenerateGrid()
-	hyd.CalculateEnergy()
-	fmt.Printf("Eneergy is %.17g\n", hyd.Energy)
+}
+
+func TestHydrogen3dEnergyMagnetic5F(t *testing.T) {
+	for m := -3; m <= 3; m++ {
+		hyd := Universal3DOrbitalAtomic{
+			MainQuantumNumber:          5,
+			AzimuthalQuantumNumber:     3,
+			MagneticQuantumNumber:      MagneticQuantumNumber(m),
+			NumberOfLayers:             100,
+			NumberOfAzimuthalIntervals: 8,
+			RadialNumberOfGLPoints:     16,
+			AngularNumberOfGLPoints:    32,
+			AzimuthalNumberOfGLPoints:  16,
+			RadialIntervalSize:         2.0,
+		}
+		fmt.Printf("Calculation parameters: interval size %f, number of layers %d, number of Gauss points %d \n", hyd.RadialIntervalSize, hyd.NumberOfLayers, hyd.RadialNumberOfGLPoints)
+		fmt.Printf("n=%d l=%d m=%d\n", hyd.MainQuantumNumber, hyd.AzimuthalQuantumNumber, hyd.MagneticQuantumNumber)
+		hyd.GenerateGrid()
+		hyd.CalculateEnergy()
+		fmt.Printf("Eneergy is %.17g\n", hyd.Energy)
+	}
 }
 
 func TestGenerateGrid3d(t *testing.T) {
@@ -157,17 +181,3 @@ func TestGenerateGrid3dMagnetic(t *testing.T) {
 		t.Error("Bad grid generator!")
 	}
 }
-
-/**
-Świetny plan — powodzenia z przepisywaniem!
-Pamiętaj tylko o trzech drobiazgach przy zmianie zmiennej z u na θ:
-• Przeskalowanie węzłów i wag: z \([-1, 1]\) na \([0, \pi]\) (mnożnik przedziału to \(\frac{\pi }{2}\)).
-• Jakobian: w elemencie objętości zamiast r² dr du dφ wchodzi \(r^2 \sin\theta \, dr \, d\theta \, d\phi\).
-• Laplasjan w HydrogenDHamiltonian: część biegunowa to teraz \(\frac{1}{r^2 \sin\theta}\frac{\partial}{\partial\theta}\left(\sin\theta\frac{\partial\psi}{\partial\theta}\right) = \frac{1}{r^2}\left(\frac{\cos\theta}{\sin\theta}\frac{\partial\psi}{\partial\theta} + \frac{\partial^2\psi}{\partial\theta^2}\right)\), a azymutalna ma w mianowniku \(r^2 \sin^2\theta\).
-Daj znać, jak poszły testy lub jeśli gdzieś po drodze pojawi się rozbieżność!
-Jeśli po przepisaniu kodu będziesz chciał:
-• Zweryfikować pochodne analityczne dla wyższych orbitali (np. l=3)
-• Przetestować zbieżność energii dla różnych stanów kwantowych
-Wklej nowe wyniki lub fragment kodu, a pomogę sprawdzić.
-Odpowiedzi wygenerowane przez AI mogą zawierać błędy. Więcej informacji
-*/

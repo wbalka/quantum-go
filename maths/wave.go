@@ -19,7 +19,7 @@ func GetWaveFunction(n int, l int, m int, Z int) (WaveFunction, error) {
 	norm := GetNormalizationConstant(n, l, Z)
 	sphericalHarm, _ := GetSphericalHarm(l, m)
 	ro := 2.0 * float64(Z) / float64(n)
-	return func(r float64, u float64, phi float64) float64 {
-		return norm * math.Pow(ro*r, float64(l)) * lagPolly(ro*r) * sphericalHarm(u, phi) * math.Exp(-0.5*ro*r)
+	return func(r float64, th float64, phi float64) float64 {
+		return norm * math.Pow(ro*r, float64(l)) * lagPolly(ro*r) * sphericalHarm(th, phi) * math.Exp(-0.5*ro*r)
 	}, nil
 }

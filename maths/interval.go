@@ -2,6 +2,7 @@ package maths
 
 import (
 	"fmt"
+	"math"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -181,10 +182,11 @@ func (interval *IntegralArea) Integrate() {
 	interval.IntegralKinetic = 0
 	interval.IntegralPotential = 0
 	for i := range interval.RadialWeights {
+		r := interval.RadialPoints[i]
 		for j := range interval.AngularWeights {
-			r := interval.RadialPoints[i]
-			integratedKinetic := r * r * interval.Values[i][j] * interval.KineticEnergy[i][j]
-			integratedPotential := r * r * interval.Values[i][j] * interval.Potential[i][j]
+			th := interval.AngularPoints[j]
+			integratedKinetic := r * r * math.Sin(th) * interval.Values[i][j] * interval.KineticEnergy[i][j]
+			integratedPotential := r * r * math.Sin(th) * interval.Values[i][j] * interval.Potential[i][j]
 			interval.IntegralKinetic += integratedKinetic * interval.RadialWeights[i] * interval.AngularWeights[j]
 			interval.IntegralPotential += integratedPotential * interval.RadialWeights[i] * interval.AngularWeights[j]
 		}
@@ -206,10 +208,10 @@ func (s *IntegralVolume) calculateDerivatives() {
 		s.AzimuthalFirstDerivative[r] = make([][]float64, len(s.AngularPoints))
 		s.AzimuthalSecondDerivative[r] = make([][]float64, len(s.AngularPoints))
 		for u := range s.AngularPoints {
-			s.RadialFirstDerivative[r][u] = make([]float64, len(s.AngularPoints))
-			s.RadialSecondDerivative[r][u] = make([]float64, len(s.AngularPoints))
-			s.AngularFirstDerivative[r][u] = make([]float64, len(s.AngularPoints))
-			s.AngularSecondDerivative[r][u] = make([]float64, len(s.AngularPoints))
+			s.RadialFirstDerivative[r][u] = make([]float64, len(s.AzimuthalPoints))
+			s.RadialSecondDerivative[r][u] = make([]float64, len(s.AzimuthalPoints))
+			s.AngularFirstDerivative[r][u] = make([]float64, len(s.AzimuthalPoints))
+			s.AngularSecondDerivative[r][u] = make([]float64, len(s.AzimuthalPoints))
 		}
 	}
 	for r := range s.RadialPoints {
@@ -289,11 +291,12 @@ func (interval *IntegralVolume) Integrate() {
 	interval.IntegralKinetic = 0
 	interval.IntegralPotential = 0
 	for i := range interval.RadialWeights {
+		r := interval.RadialPoints[i]
 		for j := range interval.AngularWeights {
+			th := interval.AngularPoints[j]
 			for k := range interval.AzimuthalWeights {
-				r := interval.RadialPoints[i]
-				integratedKinetic := r * r * interval.Values[i][j][k] * interval.KineticEnergy[i][j][k]
-				integratedPotential := r * r * interval.Values[i][j][k] * interval.Potential[i][j][k]
+				integratedKinetic := r * r * math.Sin(th) * interval.Values[i][j][k] * interval.KineticEnergy[i][j][k]
+				integratedPotential := r * r * math.Sin(th) * interval.Values[i][j][k] * interval.Potential[i][j][k]
 				interval.IntegralKinetic += integratedKinetic * interval.RadialWeights[i] * interval.AngularWeights[j] * interval.AzimuthalWeights[k]
 				interval.IntegralPotential += integratedPotential * interval.RadialWeights[i] * interval.AngularWeights[j] * interval.AzimuthalWeights[k]
 			}
