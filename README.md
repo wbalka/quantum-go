@@ -19,8 +19,8 @@ compared to -0.125 exact value\
 3d orbital (n=3, l=2, m=0):\
 -0.055555555556499145 (vs -0.055(5) a.u.)\
 4d orbital (n=4, l=2, m=0):\
--0.031249999997674131 (vs -0.03125 a.u.)
-5f orbital (n=5, l=3, m=-1)
+-0.031249999997674131 (vs -0.03125 a.u.)\
+5f orbital (n=5, l=3, m=-1)\
 -0.019999999998824177 (vs -0.02)
 
 ### Program output
