@@ -2,6 +2,7 @@ package hydrogen
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"quantum-go/maths"
 	"runtime"
@@ -64,6 +65,10 @@ func (s SphericalOrbitalAtomic) Evaluate(r float64) float64 {
 
 func (s AxialOrbitalAtomic) Evaluate(r float64, u float64) float64 {
 	return s.WaveFunction(r, u, 0)
+}
+
+func (s Universal3DOrbitalAtomic) Evaluate(r float64, u float64, phi float64) float64 {
+	return s.WaveFunction(r, u, phi)
 }
 
 func (s SphericalOrbitalAtomic) RadialDensity(r float64, mainQuantumNumber MainQuantumNumber) float64 {
@@ -134,6 +139,75 @@ func (s *AxialOrbitalAtomic) GenerateGrid() error {
 			Values:              values,
 		}
 	}
+	return nil
+}
+
+func (s *Universal3DOrbitalAtomic) GenerateGrid() error {
+	if s.MainQuantumNumber < 2 || s.MainQuantumNumber > 5 {
+		return errors.New("Invalid main quantum number")
+	} else if s.AzimuthalQuantumNumber < 0 || s.AzimuthalQuantumNumber > AzimuthalQuantumNumber(s.MainQuantumNumber-1) {
+		return errors.New("Invalid azimuthal quantum number")
+	} else if s.MagneticQuantumNumber < -MagneticQuantumNumber(s.AzimuthalQuantumNumber) || s.MagneticQuantumNumber > MagneticQuantumNumber(s.AzimuthalQuantumNumber) {
+		return errors.New("Invalid magnetic quantum number")
+	}
+	s.HamiltonianFn = HydrogenDHamiltonian
+	s.WaveFunction, _ = maths.GetWaveFunction(int(s.MainQuantumNumber), int(s.AzimuthalQuantumNumber), int(s.MagneticQuantumNumber), 1)
+	s.Grid = make([]*maths.IntegralVolume, s.NumberOfAzimuthalIntervals*s.NumberOfLayers)
+	gridIndex := 0
+	s.AzimuthalIntervalSize = 2 * math.Pi / float64(s.NumberOfAzimuthalIntervals)
+	baseRadialPoints, baseRadialWeights, _ := maths.GaussLegendrePointsWeights(s.RadialNumberOfGLPoints)
+	baseAzimuthalPoints, baseAzimuthalWeights, _ := maths.GaussLegendrePointsWeights(s.AzimuthalNumberOfGLPoints)
+	angularPoints, angularWeights, _ := maths.GaussLegendrePointsWeights(s.AngularNumberOfGLPoints)
+	for az := range s.NumberOfAzimuthalIntervals {
+		azimuthalPoints := make([]float64, len(baseAzimuthalPoints))
+		azimuthalWeights := make([]float64, len(baseAzimuthalWeights))
+		azStart := float64(az) * s.AzimuthalIntervalSize
+		azEnd := azStart + s.AzimuthalIntervalSize
+		for k := range azimuthalPoints {
+			azimuthalPoints[k] = (azEnd-azStart)/2*baseAzimuthalPoints[k] + (azEnd+azStart)/2
+			azimuthalWeights[k] = (azEnd - azStart) / 2 * baseAzimuthalWeights[k]
+		}
+		for ly := range s.NumberOfLayers {
+			rStart := float64(ly) * s.RadialIntervalSize
+			rEnd := rStart + s.RadialIntervalSize
+			radialPoints := make([]float64, len(baseRadialPoints))
+			radialWeights := make([]float64, len(baseRadialWeights))
+			for i := range baseRadialPoints {
+				radialPoints[i] = (rEnd-rStart)/2*baseRadialPoints[i] + (rEnd+rStart)/2
+				radialWeights[i] = (rEnd - rStart) / 2 * baseRadialWeights[i]
+			}
+			values := make([][][]float64, s.RadialNumberOfGLPoints)
+			for i := range baseRadialPoints {
+				values[i] = make([][]float64, s.AngularNumberOfGLPoints)
+				for j := range angularPoints {
+					values[i][j] = make([]float64, s.AzimuthalNumberOfGLPoints)
+					for k := range azimuthalPoints {
+						values[i][j][k] = s.Evaluate(radialPoints[i], angularPoints[j], azimuthalPoints[k])
+					}
+				}
+			}
+			s.Grid[gridIndex] = &maths.IntegralVolume{
+				StartRadial:           rStart,
+				EndRadial:             rEnd,
+				StartAngular:          -1,
+				EndAngular:            1,
+				RadialIntervalSize:    s.RadialIntervalSize,
+				AngularIntervalSize:   2.0,
+				StartAzimuthal:        azStart,
+				EndAzimuthal:          azEnd,
+				AzimuthalIntervalSize: s.AzimuthalIntervalSize,
+				RadialPoints:          radialPoints,
+				RadialWeights:         radialWeights,
+				AngularPoints:         angularPoints,
+				AngularWeights:        angularWeights,
+				AzimuthalPoints:       azimuthalPoints,
+				AzimuthalWeights:      azimuthalWeights,
+				Values:                values,
+			}
+			gridIndex++
+		}
+	}
+
 	return nil
 }
 
@@ -220,5 +294,32 @@ func (s *AxialOrbitalAtomic) CalculateEnergy() {
 	s.Kinetic *= 2 * math.Pi
 	s.Potential *= 2 * math.Pi
 	s.Energy = s.Kinetic + s.Potential
-	//fmt.Printf("Kinetic %0.17g potential %0.17g \n", s.Kinetic, s.Potential)
+	fmt.Printf("Kinetic %0.17g potential %0.17g \n", s.Kinetic, s.Potential)
+}
+
+func (s *Universal3DOrbitalAtomic) CalculateEnergy() {
+	maths.ParallelCalculations(s.Grid,
+		func(interval *maths.IntegralVolume) error {
+			interval.CalculateHamiltonian(s.HamiltonianFn)
+			interval.Integrate()
+			return nil
+		},
+		runtime.NumCPU())
+	for _, interval := range s.Grid {
+		s.Kinetic += interval.IntegralKinetic
+		s.Potential += interval.IntegralPotential
+	}
+	s.Energy = s.Kinetic + s.Potential
+	fmt.Printf("Kinetic %0.17g potential %0.17g \n", s.Kinetic, s.Potential)
+}
+
+func (s *Universal3DOrbitalAtomic) CalculateEnergySeq() {
+	for _, interval := range s.Grid {
+		interval.CalculateHamiltonian(s.HamiltonianFn)
+		interval.Integrate()
+		s.Kinetic += interval.IntegralKinetic
+		s.Potential += interval.IntegralPotential
+	}
+	s.Energy = s.Kinetic + s.Potential
+	fmt.Printf("Kinetic %0.17g potential %0.17g \n", s.Kinetic, s.Potential)
 }

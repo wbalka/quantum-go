@@ -88,7 +88,7 @@ type RadialHamiltonian func(RadialInterval, int) float64
 
 type SphericalHamiltonian2d func(IntegralArea, int, int) (float64, float64)
 
-type SphericalHamiltonian3d func(IntegralArea, int, int, int) (float64, float64)
+type SphericalHamiltonian3d func(IntegralVolume, int, int, int) (float64, float64)
 
 type Calculation func(Interval) error
 
@@ -187,6 +187,116 @@ func (interval *IntegralArea) Integrate() {
 			integratedPotential := r * r * interval.Values[i][j] * interval.Potential[i][j]
 			interval.IntegralKinetic += integratedKinetic * interval.RadialWeights[i] * interval.AngularWeights[j]
 			interval.IntegralPotential += integratedPotential * interval.RadialWeights[i] * interval.AngularWeights[j]
+		}
+	}
+}
+
+func (s *IntegralVolume) calculateDerivatives() {
+	s.RadialFirstDerivative = make([][][]float64, len(s.RadialPoints))
+	s.RadialSecondDerivative = make([][][]float64, len(s.RadialPoints))
+	s.AngularFirstDerivative = make([][][]float64, len(s.RadialPoints))
+	s.AngularSecondDerivative = make([][][]float64, len(s.RadialPoints))
+	s.AzimuthalFirstDerivative = make([][][]float64, len(s.RadialPoints))
+	s.AzimuthalSecondDerivative = make([][][]float64, len(s.RadialPoints))
+	for r := range s.RadialPoints {
+		s.RadialFirstDerivative[r] = make([][]float64, len(s.AngularPoints))
+		s.RadialSecondDerivative[r] = make([][]float64, len(s.AngularPoints))
+		s.AngularFirstDerivative[r] = make([][]float64, len(s.AngularPoints))
+		s.AngularSecondDerivative[r] = make([][]float64, len(s.AngularPoints))
+		s.AzimuthalFirstDerivative[r] = make([][]float64, len(s.AngularPoints))
+		s.AzimuthalSecondDerivative[r] = make([][]float64, len(s.AngularPoints))
+		for u := range s.AngularPoints {
+			s.RadialFirstDerivative[r][u] = make([]float64, len(s.AngularPoints))
+			s.RadialSecondDerivative[r][u] = make([]float64, len(s.AngularPoints))
+			s.AngularFirstDerivative[r][u] = make([]float64, len(s.AngularPoints))
+			s.AngularSecondDerivative[r][u] = make([]float64, len(s.AngularPoints))
+		}
+	}
+	for r := range s.RadialPoints {
+		for u := range s.AngularPoints {
+			interpolationInterval := InterpolationInterval{
+				Start:   s.StartAzimuthal,
+				End:     s.EndAzimuthal,
+				Points:  s.AzimuthalPoints,
+				Weights: s.AzimuthalWeights,
+				Values:  s.Values[r][u],
+			}
+			interpolationInterval.CalculateInterpolatingPolynomialCoefficientsAndFunctionDerivatives()
+			s.AzimuthalFirstDerivative[r][u] = interpolationInterval.FirstDerivative
+			s.AzimuthalSecondDerivative[r][u] = interpolationInterval.SecondDerivative
+		}
+	}
+	for r := range s.RadialPoints {
+		for phi := range s.AzimuthalPoints {
+			values := make([]float64, len(s.AngularPoints))
+			for u := range s.Values[r] {
+				values[u] = s.Values[r][u][phi]
+			}
+			interpolationInterval := InterpolationInterval{
+				Start:   s.StartAngular,
+				End:     s.EndAngular,
+				Points:  s.AngularPoints,
+				Weights: s.AngularWeights,
+				Values:  values,
+			}
+			interpolationInterval.CalculateInterpolatingPolynomialCoefficientsAndFunctionDerivatives()
+			for u := range s.AngularPoints {
+				s.AngularFirstDerivative[r][u][phi] = interpolationInterval.FirstDerivative[u]
+				s.AngularSecondDerivative[r][u][phi] = interpolationInterval.SecondDerivative[u]
+			}
+		}
+	}
+	for u := range s.AngularPoints {
+		for phi := range s.AzimuthalPoints {
+			values := make([]float64, len(s.RadialPoints))
+			for r := range s.RadialPoints {
+				values[r] = s.Values[r][u][phi]
+			}
+			interpolationInterval := InterpolationInterval{
+				Start:   s.StartRadial,
+				End:     s.EndRadial,
+				Points:  s.RadialPoints,
+				Weights: s.RadialWeights,
+				Values:  values,
+			}
+			interpolationInterval.CalculateInterpolatingPolynomialCoefficientsAndFunctionDerivatives()
+			for r := range s.RadialPoints {
+				s.RadialFirstDerivative[r][u][phi] = interpolationInterval.FirstDerivative[r]
+				s.RadialSecondDerivative[r][u][phi] = interpolationInterval.SecondDerivative[r]
+			}
+		}
+	}
+}
+
+func (interval *IntegralVolume) CalculateHamiltonian(fn SphericalHamiltonian3d) {
+	interval.calculateDerivatives()
+	interval.KineticEnergy = make([][][]float64, len(interval.RadialPoints))
+	interval.Potential = make([][][]float64, len(interval.RadialPoints))
+	for r := range interval.RadialPoints {
+		interval.KineticEnergy[r] = make([][]float64, len(interval.AngularPoints))
+		interval.Potential[r] = make([][]float64, len(interval.AngularPoints))
+		for u := range interval.AngularPoints {
+			interval.KineticEnergy[r][u] = make([]float64, len(interval.AzimuthalPoints))
+			interval.Potential[r][u] = make([]float64, len(interval.AzimuthalPoints))
+			for phi := range interval.AzimuthalPoints {
+				interval.KineticEnergy[r][u][phi], interval.Potential[r][u][phi] = fn(*interval, r, u, phi)
+			}
+		}
+	}
+}
+
+func (interval *IntegralVolume) Integrate() {
+	interval.IntegralKinetic = 0
+	interval.IntegralPotential = 0
+	for i := range interval.RadialWeights {
+		for j := range interval.AngularWeights {
+			for k := range interval.AzimuthalWeights {
+				r := interval.RadialPoints[i]
+				integratedKinetic := r * r * interval.Values[i][j][k] * interval.KineticEnergy[i][j][k]
+				integratedPotential := r * r * interval.Values[i][j][k] * interval.Potential[i][j][k]
+				interval.IntegralKinetic += integratedKinetic * interval.RadialWeights[i] * interval.AngularWeights[j] * interval.AzimuthalWeights[k]
+				interval.IntegralPotential += integratedPotential * interval.RadialWeights[i] * interval.AngularWeights[j] * interval.AzimuthalWeights[k]
+			}
 		}
 	}
 }

@@ -8,7 +8,7 @@ import (
 type SphericalHarm func(float64, float64) float64
 
 /*
-Spherical harmocis are the angular solutions when solving Laplace's equation in spherical coordinates
+Spherical harmonics are the angular solutions when solving Laplace's equation in spherical coordinates
 Substitution used: u=cosθ
 */
 func GetSphericalHarm(l int, m int) (SphericalHarm, error) {
@@ -43,11 +43,11 @@ func GetSphericalHarm(l int, m int) (SphericalHarm, error) {
 			}, nil
 		case 1:
 			return func(u float64, phi float64) float64 {
-				return 0.5 * math.Sqrt(15/math.Pi) * math.Sqrt(1-u*u) * math.Cos(2*phi)
+				return 0.5 * math.Sqrt(15/math.Pi) * u * math.Sqrt(1-u*u) * math.Cos(phi)
 			}, nil
 		case -1:
 			return func(u float64, phi float64) float64 {
-				return -0.5 * math.Sqrt(15/(2*math.Pi)) * math.Sqrt(1-u*u) * math.Sin(2*phi)
+				return -0.5 * math.Sqrt(15/math.Pi) * u * math.Sqrt(1-u*u) * math.Sin(phi)
 			}, nil
 		case 2:
 			return func(u float64, phi float64) float64 {
